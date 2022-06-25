@@ -137,7 +137,7 @@ class Backtester:
                     price = holding.price
                     print(f"[warning] no price available for {symbol}, using last price: {price}")
                 
-                result = self.holder.order(Order(symbol, 0, price))
+                result = self.holder.order(Order(symbol, -holding.quantity, price))
                 mass_result.append(result)
                 
                 if result.success:
