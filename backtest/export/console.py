@@ -125,8 +125,8 @@ class JsonConsoleDelegate(ConsoleDelegate):
             "equity": snapshot.equity,
             "postponned": str(snapshot.postponned) if snapshot.postponned else None,
             "totalFees": snapshot.total_fees,
-            "success_count": snapshot.success_count,
-            "failed_count": snapshot.failed_count
+            "successCount": snapshot.success_count,
+            "failedCount": snapshot.failed_count
         })
 
     @abc.abstractmethod
