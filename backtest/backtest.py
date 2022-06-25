@@ -52,10 +52,10 @@ class Backtester:
         order_provider: OrderProvider,
         initial_cash: int,
         quantity_in_decimal: bool,
-        auto_close_others: bool,
         data_source: DataSource,
-        mapper: SymbolMapper,
-        exporters: typing.List[BaseExporter],
+        auto_close_others: bool=True,
+        exporters: typing.List[BaseExporter]=[],
+        mapper: SymbolMapper=None,
         fee_model: FeeModel=ConstantFeeModel(0.0),
         caching=True,
     ):

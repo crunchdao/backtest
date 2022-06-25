@@ -180,15 +180,15 @@ def main(
 
     from .backtest import Backtester
     Backtester(
-        start,
-        end,
-        order_provider,
-        initial_cash,
-        quantity_in_decimal,
-        auto_close_others,
-        data_source,
-        symbol_mapper,
-        exporters,
+        start=start,
+        end=end,
+        order_provider=order_provider,
+        initial_cash=initial_cash,
+        quantity_in_decimal=quantity_in_decimal,
+        auto_close_others=auto_close_others,
+        data_source=data_source,
+        mapper=symbol_mapper,
+        exporters=exporters,
         fee_model=fee_model,
         caching=not no_caching,
     ).run(
