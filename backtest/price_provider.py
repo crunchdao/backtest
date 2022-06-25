@@ -71,7 +71,7 @@ class PriceProvider:
         self.start = start
         self.end = end
         self.data_source = data_source
-        self.mapper = mapper
+        self.mapper = mapper if mapper is not None else SymbolMapper.empty()
         self.caching = caching
 
         self.storage = PriceProvider._create_storage(start, end, caching)
@@ -146,9 +146,12 @@ class PriceProvider:
         if not self.caching or not self.updated:
             return
 
-        self.storage.to_csv(
-            PriceProvider._get_cache_path(self.start, self.end)
-        )
+        path = PriceProvider._get_cache_path(self.start, self.end)
+        
+        parent = os.path.dirname(path)
+        os.makedirs(parent, exist_ok=True)
+        
+        self.storage.to_csv(path)
     
     def is_closeable(self) -> bool:
         return self.data_source.is_closeable()

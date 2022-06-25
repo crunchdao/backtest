@@ -126,7 +126,7 @@ def main(
         print(f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
 
     from .price_provider import SymbolMapper
-    symbol_mapper = SymbolMapper.empty() if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
+    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
     
     fee_model = None
     if fee_model_value:
