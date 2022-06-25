@@ -117,7 +117,7 @@ class PriceProvider:
             prices.columns = self.mapper.unmaps(prices.columns)
             for column in prices.columns:
                 if prices[column].isna().values.all():
-                    print(f"[warning] {column} does not have a price")
+                    print(f"[warning] {column} does not have a price", file=sys.stderr)
             
             if self.storage is not None:
                 self.storage = pandas.merge(

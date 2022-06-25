@@ -73,8 +73,7 @@ class CoinMarketCapDataSource(DataSource):
             if len(crypto_currency_map) != page_size:
                 break
 
-        print(
-            f"[info] [datasource] [coinmarketcap] mapping size is {len(self.symbol_to_id_mapping)}")
+        print(f"[info] [datasource] [coinmarketcap] mapping size is {len(self.symbol_to_id_mapping)}", file=sys.stderr)
 
     @abc.abstractmethod
     def fetch_prices(self, symbols: typing.Set[str], start: datetime.date, end: datetime.date) -> pandas.DataFrame:

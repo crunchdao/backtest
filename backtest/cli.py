@@ -90,7 +90,7 @@ def main(
     if end > now:
         end = now
 
-        print(f"[warning] end is after today, using: {now}")
+        print(f"[warning] end is after today, using: {now}", file=sys.stderr)
 
     data_source = None
     if yahoo:
@@ -176,7 +176,7 @@ def main(
         from .export import ConsoleExporter
         exporters.append(ConsoleExporter())
 
-        print(f"[warning] no exporter selected, defaulting to --console")
+        print(f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
     from .backtest import Backtester
     Backtester(

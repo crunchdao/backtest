@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import sys
 import typing
 
 import numpy
@@ -103,9 +104,9 @@ class Backtester:
                     if result.success:
                         others.discard(symbol)
                     else:
-                        print(f"[warning] order not placed: {symbol} @ {percent}%")
+                        print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
                 else:
-                    print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available")
+                    print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
         else:
             for _, row in orders_dataframe.iterrows():
                 symbol = row["symbol"]
@@ -119,9 +120,9 @@ class Backtester:
                     if result.success:
                         others.discard(symbol)
                     else:
-                        print(f"[warning] order not placed: {symbol} @ {percent}%")
+                        print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
                 else:
-                    print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available")
+                    print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
         
         if self.auto_close_others and len(others):
             closed = 0
@@ -135,7 +136,7 @@ class Backtester:
                 price = self.price_provider.get(date, symbol)
                 if not price or numpy.isnan(price):
                     price = holding.price
-                    print(f"[warning] no price available for {symbol}, using last price: {price}")
+                    print(f"[warning] no price available for {symbol}, using last price: {price}", file=sys.stderr)
                 
                 result = self.holder.order(Order(symbol, -holding.quantity, price))
                 mass_result.append(result)
@@ -143,9 +144,9 @@ class Backtester:
                 if result.success:
                     closed += 1
                 else:
-                    print(f"[warning] could not auto-close: {symbol} @ {percent}%")
+                    print(f"[warning] could not auto-close: {symbol} @ {percent}%", file=sys.stderr)
             
-            print(f"[info] auto closed: {closed}/{len(others)}")
+            print(f"[info] auto closed: {closed}/{len(others)}", file=sys.stderr)
     
         return mass_result
 

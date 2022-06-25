@@ -1,6 +1,7 @@
 import abc
 import datetime
 import os
+import sys
 import typing
 
 import pandas
@@ -57,7 +58,7 @@ class QuantStatsExporter(BaseExporter):
     @abc.abstractmethod
     def finalize(self) -> None:
         if not len(self.data_frame):
-            print("[warning] cannot create tearsheet: dataframe is empty")
+            print("[warning] cannot create tearsheet: dataframe is empty", file=sys.stderr)
             return
         
         history_df = self.data_frame.copy()
@@ -87,9 +88,9 @@ class QuantStatsExporter(BaseExporter):
         if not os.path.exists(self.csv_output_file):
             merged.to_csv(self.csv_output_file)
         else:
-            print(f"[warning] {self.csv_output_file} already exists")
+            print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
 
         if not os.path.exists(self.html_output_file):
             quantstats.reports.html(merged.daily_profit_pct, merged.close, output=True, download_filename=self.html_output_file)
         else:
-            print(f"[warning] {self.html_output_file} already exists")
+            print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
