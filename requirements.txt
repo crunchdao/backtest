@@ -1,0 +1,11 @@
+click
+python-dateutil
+influxdb
+numpy
+pandas
+py_expression_eval
+pyarrow
+quantstats
+requests
+tqdm
+yfinance
