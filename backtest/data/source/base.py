@@ -13,4 +13,9 @@ class DataSource:
 
     @abc.abstractmethod
     def is_closeable(self) -> bool:
+        """
+        Return whether or not the markat has closing hours.
+        Cryptocurrencies for examples does not.
+        """
+        
         return True
