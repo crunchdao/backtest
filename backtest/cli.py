@@ -131,13 +131,13 @@ def main(
     fee_model = None
     if fee_model_value:
         if is_number(fee_model_value):
-            from .order.fee import ConstantFeeModel
+            from .fee import ConstantFeeModel
             fee_model = ConstantFeeModel(float(fee_model_value))
         else:
-            from .order.fee import ExpressionFeeModel
+            from .fee import ExpressionFeeModel
             fee_model = ExpressionFeeModel(fee_model_value)
     else:
-        from .order.fee import ConstantFeeModel
+        from .fee import ConstantFeeModel
         fee_model = ConstantFeeModel(0.0)
 
     exporters = []
