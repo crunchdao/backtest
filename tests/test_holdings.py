@@ -3,10 +3,10 @@ import backtest
 
 class HoldingTest(unittest.TestCase):
 
-    def test_get_market_price(self):
+    def test_market_price(self):
         holding = backtest.Holding("AAPL", 15, 2)
 
-        self.assertEqual(15*2, holding.get_market_price())
+        self.assertEqual(15*2, holding.market_price)
 
     def test_merge(self):
         holding = backtest.Holding("AAPL", 15, 2)

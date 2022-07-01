@@ -84,10 +84,10 @@ class Backtester:
 
         self.price_provider.download_missing(symbols)
         
-        others = self.holder.get_symbols()
+        others = self.holder.symbols
 
         if self.quantity_in_decimal:
-            equity = self.holder.get_equity()
+            equity = self.holder.equity
 
             for _, row in orders_dataframe.iterrows():
                 symbol = row["symbol"]
@@ -97,6 +97,8 @@ class Backtester:
                 price = self.price_provider.get(price_date, symbol)
                 if price and not numpy.isnan(price):
                     quantity = int(holding_cash_value / price)
+
+                    
 
                     result = self.holder.order(Order(symbol, quantity, price))
                     mass_result.append(result)
@@ -151,7 +153,7 @@ class Backtester:
         return mass_result
 
     def update_price(self, date):
-        for holding in self.holder.get_holdings():
+        for holding in self.holder.holdings:
             price = self.price_provider.get(date, holding.symbol)
 
             if price and not numpy.isnan(price):
@@ -219,8 +221,8 @@ class Backtester:
     
     def fire_snapshot(self, date: datetime.date, result: _MassOrderResult, postponned=None):
         cash = float(self.holder.cash)
-        equity = float(self.holder.get_equity())
-        holdings = self.holder.get_holdings()
+        equity = float(self.holder.equity)
+        holdings = self.holder.holdings
         ordered = result is not None
         
         snapshot = Snapshot(

@@ -6,14 +6,15 @@ from .order.fee import FeeModel, ConstantFeeModel
 from .utils import signum
 
 
-class Holding:
+class  Holding:
 
     def __init__(self, symbol, quantity, price):
         self.symbol = symbol
         self.quantity = quantity
         self.price = price
 
-    def get_market_price(self) -> float:
+    @property
+    def market_price(self) -> float:
         return self.quantity * self.price
 
     def merge(self, holding: "Holding") -> "Holding":
@@ -63,7 +64,7 @@ class Holder:
         
         return current
 
-    def order(self, order: Order) -> OrderResult:
+    def place_order(self, order: Order) -> OrderResult:
         result = OrderResult(order=order)
         
         if not order.symbol:
@@ -72,16 +73,14 @@ class Holder:
         current_holding: Holding = self[order.symbol]
         holding = Holding.from_order(order)
         
-        fee = self.fee_model.get_order_fee(order)
-        
-        result.fee = fee
-        self.cash -= fee
+        result.fee = self.fee_model.get_order_fee(order)
+        self.cash -= result.fee
         
         result.success = True
 
         if not current_holding:
             self[order.symbol] = holding
-            self.cash -= holding.get_market_price()
+            self.cash -= holding.market_price
             return result
 
         previous = current_holding.quantity
@@ -112,17 +111,20 @@ class Holder:
 
         return result
 
-    def get_equity(self):
+    @property
+    def equity(self):
         equity = self.cash
 
         for holding in self.holdings.values():
-            equity += holding.get_market_price()
+            equity += holding.market_price
 
         return equity
 
-    def get_symbols(self) -> typing.Set[str]:
+    @property
+    def symbols(self) -> typing.Set[str]:
         return set(self.holdings.keys())
 
-    def get_holdings(self) -> typing.List[Holding]:
+    @property
+    def holdings(self) -> typing.List[Holding]:
         return list(self.holdings.values())
     
