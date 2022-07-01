@@ -4,4 +4,7 @@ init:
 install: init
 	pip install -e .
 
+test:
+	python -m unittest discover -p 'test_*.py'
+
 .PHONY: init install
