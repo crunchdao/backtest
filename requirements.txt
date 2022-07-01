@@ -9,3 +9,4 @@ quantstats
 requests
 tqdm
 yfinance
+pytest
