@@ -18,6 +18,10 @@ class Snapshot:
     success_count: int = 0
     failed_count: int = 0
     
+    # None if `--auto-close` is not specified
+    closed_count: int = None
+    closed_total: int = None
+    
     @property
     def holding_count(self) -> int:
         return len(self.holdings)

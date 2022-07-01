@@ -75,6 +75,11 @@ class TextConsoleDelegate(ConsoleDelegate):
             failed_count = snapshot.failed_count
             total = success_count + failed_count
             line += f"    [orders={success_count}/{total}]"
+            
+            if snapshot.closed_count is not None:
+                closed_count = snapshot.closed_count
+                closed_total = snapshot.closed_total
+                line += f"    [closed={closed_count}/{closed_total}]"
         
         self._print(line)
 
@@ -128,7 +133,11 @@ class JsonConsoleDelegate(ConsoleDelegate):
             "postponned": str(snapshot.postponned) if snapshot.postponned else None,
             "totalFees": snapshot.total_fees,
             "successCount": snapshot.success_count,
-            "failedCount": snapshot.failed_count
+            "failedCount": snapshot.failed_count,
+            "closed": {
+                "count": snapshot.closed_count,
+                "total": snapshot.closed_total
+            }
         })
 
     @abc.abstractmethod

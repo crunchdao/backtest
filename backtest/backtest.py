@@ -16,6 +16,8 @@ from .price_provider import PriceProvider, SymbolMapper
 class _MassOrderResult:
 
     order_results: list
+    closed_count: int = None
+    closed_total: int = None
 
     @property
     def total_fees(self):
@@ -122,8 +124,15 @@ class Backtester:
                 else:
                     print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
 
-        if self.auto_close_others and len(others):
-            self._close_all(others, date, mass_result)
+        if self.auto_close_others:
+            if len(others):
+                closed, total = self._close_all(others, date, mass_result)
+                
+                mass_result.closed_count = closed
+                mass_result.closed_total = total
+            else:
+                mass_result.closed_count = 0
+                mass_result.closed_total = 0
 
         return mass_result
 
@@ -214,12 +223,15 @@ class Backtester:
             snapshot.total_fees = result.total_fees
             snapshot.success_count = result.success_count
             snapshot.failed_count = result.failed_count
+        
+            snapshot.closed_count = result.closed_count
+            snapshot.closed_total = result.closed_total
 
         for exporter in self.exporters:
             exporter.on_snapshot(snapshot)
 
     def _close_all(self, symbols: typing.Iterable[str], date: datetime.date, mass_result: _MassOrderResult):
-        closed = 0
+        closed, total = 0, 0
 
         for symbol in symbols:
             price = self.price_provider.get(date, symbol)
@@ -234,5 +246,7 @@ class Backtester:
                 closed += 1
             else:
                 print(f"[warning] could not auto-close: {symbol}", file=sys.stderr)
-
-        print(f"[info] auto closed: {closed}/{len(symbols)}", file=sys.stderr)
+            
+            total += 1
+        
+        return closed, total
