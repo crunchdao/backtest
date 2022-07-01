@@ -29,9 +29,6 @@ class OrderTest(unittest.TestCase):
         order = backtest.Order("   ", 15, 2)
         self.assertFalse(order.valid)
 
-        order = backtest.Order("AAPL", 0, 2)
-        self.assertFalse(order.valid)
-
         order = backtest.Order("AAPL", 15, 0)
         self.assertFalse(order.valid)
 

@@ -96,7 +96,7 @@ class Backtester:
                 if price is not None:
                     quantity = int(holding_cash_value / price)
 
-                    result = self.account.place_order(Order(symbol, quantity, price))
+                    result = self.account.order_position(Order(symbol, quantity, price))
                     mass_result.append(result)
 
                     if result.success:
@@ -112,7 +112,7 @@ class Backtester:
 
                 price = self.price_provider.get(price_date, symbol)
                 if price is not None:
-                    result = self.account.place_order(Order(symbol, quantity, price))
+                    result = self.account.order_position(Order(symbol, quantity, price))
                     mass_result.append(result)
 
                     if result.success:
@@ -123,25 +123,10 @@ class Backtester:
                     print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
 
         if self.auto_close_others and len(others):
-            closed = 0
-
-            for symbol in others:
-                price = self.price_provider.get(date, symbol)
-                result = self.account.close_position(symbol, price)
-
-                if result.missing:
-                    continue
-
-                mass_result.append(result)
-
-                if result.success:
-                    closed += 1
-                else:
-                    print(f"[warning] could not auto-close: {symbol}", file=sys.stderr)
-
-            print(f"[info] auto closed: {closed}/{len(others)}", file=sys.stderr)
+            self._close_all(others, date, mass_result)
 
         return mass_result
+
 
     def update_price(self, date):
         for holding in self.account.holdings:
@@ -232,3 +217,22 @@ class Backtester:
 
         for exporter in self.exporters:
             exporter.on_snapshot(snapshot)
+
+    def _close_all(self, symbols: typing.Iterable[str], date: datetime.date, mass_result: _MassOrderResult):
+        closed = 0
+
+        for symbol in symbols:
+            price = self.price_provider.get(date, symbol)
+            result = self.account.close_position(symbol, price)
+
+            if result.missing:
+                continue
+
+            mass_result.append(result)
+
+            if result.success:
+                closed += 1
+            else:
+                print(f"[warning] could not auto-close: {symbol}", file=sys.stderr)
+
+        print(f"[info] auto closed: {closed}/{len(symbols)}", file=sys.stderr)

@@ -2,6 +2,10 @@ import typing
 import unittest
 import backtest
 
+aapl = backtest.Order("AAPL", 42, 1)
+aapl_hold = backtest.Order("AAPL", 0, 1)
+aapl_short = backtest.Order("AAPL", -42, 1)
+
 
 class AccountTest(unittest.TestCase):
 
@@ -40,6 +44,36 @@ class AccountTest(unittest.TestCase):
         result = account.place_order(aapl_short)
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + tsla.value, account.equity)
+
+    def test_order_position(self):
+        account = backtest.Account()
+
+        result = account.order_position(backtest.Order(None, 1, 1))
+        self.assertFalse(result.success)
+
+        result = account.order_position(aapl)
+        self.assertTrue(result.success)
+        self.assertEqual(aapl.quantity, result.order.quantity)
+        holding = account.find_holding(aapl.symbol)
+        self.assertIsNotNone(holding)
+        self.assertEqual(aapl.quantity, holding.quantity)
+        self.assertEqual(aapl.price, holding.price)
+
+        result = account.order_position(aapl)
+        self.assertTrue(result.success)
+        self.assertEqual(0, result.order.quantity)
+        holding = account.find_holding(aapl.symbol)
+        self.assertIsNotNone(holding)
+        self.assertEqual(aapl.quantity, holding.quantity)
+        self.assertEqual(aapl.price, holding.price)
+
+        result = account.order_position(aapl_short)
+        self.assertTrue(result.success)
+        self.assertEqual(aapl_short.quantity * 2, result.order.quantity)
+        holding = account.find_holding(aapl.symbol)
+        self.assertIsNotNone(holding)
+        self.assertEqual(aapl_short.quantity, holding.quantity)
+        self.assertEqual(aapl_short.price, holding.price)
 
     def test_close_position(self):
         account = backtest.Account()
@@ -91,6 +125,45 @@ class AccountTest(unittest.TestCase):
         account, aapl, tsla = AccountTest._create_dummy()
 
         self.assertEqual([aapl, tsla], account.holdings)
+
+    def test_find_holding(self):
+        account, aapl, tsla = AccountTest._create_dummy()
+
+        self.assertEqual(aapl, account.find_holding(aapl.symbol))
+        self.assertEqual(tsla, account.find_holding(tsla.symbol))
+        
+        self.assertIsNone(account.find_holding("CRUNCH"))
+
+    def test_to_relative_order(self):
+        account = backtest.Account()
+
+        self.assertEqual(aapl, account.to_relative_order(aapl))
+        self.assertEqual(aapl_hold, account.to_relative_order(aapl_hold))
+        self.assertEqual(aapl_short, account.to_relative_order(aapl_short))
+
+        result = account.place_order(aapl)
+        self.assertTrue(result.success)
+
+        relative = account.to_relative_order(aapl)
+        self.assertEqual(0, relative.quantity)
+
+        relative = account.to_relative_order(aapl_hold)
+        self.assertEqual(-aapl.quantity, relative.quantity)
+
+        relative = account.to_relative_order(aapl_short)
+        self.assertEqual(aapl_short.quantity * 2, relative.quantity)
+
+        account = backtest.Account()
+        result = account.place_order(aapl_short)
+
+        relative = account.to_relative_order(aapl_short)
+        self.assertEqual(0, relative.quantity)
+
+        relative = account.to_relative_order(aapl_hold)
+        self.assertEqual(aapl.quantity, relative.quantity)
+
+        relative = account.to_relative_order(aapl)
+        self.assertEqual(aapl.quantity * 2, relative.quantity)
 
     @staticmethod
     def _create_dummy(add=True) -> typing.Tuple[backtest.Account, backtest.Holding, backtest.Holding]:

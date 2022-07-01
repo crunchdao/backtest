@@ -40,17 +40,24 @@ class Account:
     def holdings(self) -> typing.List[Holding]:
         return list(self._holdings.values())
 
+    def find_holding(self, symbol: str):
+        return self._holdings.get(symbol, None)
+
     def place_order(self, order: Order) -> OrderResult:
         result = OrderResult(order=order)
         if not order.valid:
             return result
 
         result.success = True
+
+        if order.quantity == 0:
+            return result
+
         result.fee = self.fee_model.get_order_fee(order)
 
         self._handle_cash(order, result.fee)
 
-        holding = self._holdings.get(order.symbol, None)
+        holding = self.find_holding(order.symbol)
 
         if holding:
             holding.merge(order)
@@ -62,6 +69,11 @@ class Account:
 
         return result
 
+    def order_position(self, order: Order) -> OrderResult:
+        relative = self.to_relative_order(order)
+
+        return self.place_order(relative)
+
     def close_position(self, symbol: str, price: float = None) -> CloseResult:
         order = Order(symbol, 0, price)
         result = CloseResult(order=order)
@@ -71,7 +83,7 @@ class Account:
 
         result.success = True
 
-        holding = self._holdings.get(order.symbol, None)
+        holding = self.find_holding(order.symbol)
 
         if holding:
             order.quantity = -holding.quantity
@@ -89,6 +101,18 @@ class Account:
             result.missing = True
 
         return result
+
+    def to_relative_order(self, order: Order):
+        holding = self.find_holding(order.symbol)
+
+        if not holding or order.quantity is None:
+            return order
+
+        return Order(
+            order.symbol,
+            order.quantity - holding.quantity,
+            order.price
+        )
 
     def _handle_cash(self, order: Order, fee: float):
         self.cash -= fee

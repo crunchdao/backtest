@@ -34,8 +34,7 @@ class Order:
     @property
     def valid(self):
         return not is_blank(self.symbol) \
-            and self.price > 0 \
-            and self.quantity != 0
+            and self.price > 0
 
 
 @dataclasses.dataclass()
