@@ -50,4 +50,5 @@ class CloseResult:
 
     order: Order
     success: bool = False
+    missing: bool = False
     fee: float = 0.0

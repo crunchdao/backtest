@@ -1,10 +1,11 @@
+import sys
 import typing
 
 from backtest.utils import is_blank
 
 from .holding import Holding
 from .order import Order, OrderResult, CloseResult
-from .order.fee import FeeModel, ConstantFeeModel
+from .fee import FeeModel, ConstantFeeModel
 
 
 class Account:
@@ -65,24 +66,27 @@ class Account:
         order = Order(symbol, 0, price)
         result = CloseResult(order=order)
 
-        if is_blank(symbol):
+        if is_blank(order.symbol):
             return result
 
         result.success = True
 
-        holding = self._holdings.get(symbol, None)
+        holding = self._holdings.get(order.symbol, None)
 
         if holding:
             order.quantity = -holding.quantity
 
             if order.price is None:
                 order.price = holding.price
+                print(f"[warning] no price available for {order.symbol}, using last price: {order.price}", file=sys.stderr)
 
             result.fee = self.fee_model.get_order_fee(order)
 
             self._handle_cash(order, result.fee)
 
             del self._holdings[order.symbol]
+        else:
+            result.missing = True
 
         return result
 

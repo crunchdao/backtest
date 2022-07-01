@@ -137,10 +137,12 @@ class PriceProvider:
             raise ValueError(f"{symbol} not available")
 
         symbol = self.mapper.map(symbol)
-        """print(symbol, self.storage)
-        print(symbol, self.storage.columns)"""
-        # print(f"{symbol} getting {date}")
-        return self.storage[symbol][numpy.datetime64(date)]
+
+        value = self.storage[symbol][numpy.datetime64(date)]
+        if not value or numpy.isnan(value):
+            value = None
+
+        return value
 
     def save(self):
         if not self.caching or not self.updated:

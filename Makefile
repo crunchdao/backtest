@@ -1,4 +1,4 @@
-PYTHON=python3.9
+PYTHON=python
 PIP=$(PYTHON) -m pip
 
 init:
@@ -10,4 +10,7 @@ install: init
 test:
 	$(PYTHON) -m pytest -v
 
-.PHONY: init install
+example:
+	PYTHONPATH=. find example/ -name "*.py" -exec $(PYTHON) {} \;
+
+.PHONY: init install test example

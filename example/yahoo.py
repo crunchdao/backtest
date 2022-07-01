@@ -17,6 +17,8 @@ order_provider = backtest.order.provider.DataFrameOrderProvider(pandas.DataFrame
     { "symbol": "AAPL", "quantity":-40, "date": (start + datetime.timedelta(days=20)).isoformat() },
     { "symbol": "NFLX", "quantity":-60, "date": (start + datetime.timedelta(days=30)).isoformat() },
     { "symbol": "AAPL", "quantity":+50, "date": (start + datetime.timedelta(days=30)).isoformat() },
+    { "symbol": "AAPL", "quantity":+60, "date": (start + datetime.timedelta(days=40)).isoformat() },
+    { "symbol": "AAPL", "quantity":+70, "date": (start + datetime.timedelta(days=50)).isoformat() },
 ]))
 
 backtest.Backtester(

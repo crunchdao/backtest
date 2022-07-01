@@ -7,10 +7,10 @@ from .base import FeeModel
 
 
 class ExpressionFeeModel(FeeModel):
-    
+
     def __init__(self, expression: str):
         super().__init__()
-        
+
         parser = py_expression_eval.Parser()
         self.expression = parser.parse(expression)
 
