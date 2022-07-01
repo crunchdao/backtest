@@ -1,10 +1,13 @@
+PYTHON=python3.9
+PIP=$(PYTHON) -m pip
+
 init:
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 install: init
-	pip install -e .
+	$(PIP) install -e .
 
 test:
-	python -m unittest discover -p 'test_*.py'
+	$(PYTHON) -m pytest -v
 
 .PHONY: init install
