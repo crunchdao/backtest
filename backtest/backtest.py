@@ -7,7 +7,7 @@ import numpy
 
 from .data.source.base import DataSource
 from .export import BaseExporter, Snapshot
-from .holding import Holder
+from .account import Account
 from .order import Order, OrderResult
 from .order.fee import FeeModel, ConstantFeeModel
 from .order.provider.base import OrderProvider
@@ -70,7 +70,7 @@ class Backtester:
         self.start = max(next(iter(self.order_dates)), start) if len(self.order_dates) else None
 
         self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching)
-        self.holder = Holder(cash=initial_cash, fee_model=fee_model)
+        self.account = Account(cash=initial_cash, fee_model=fee_model)
 
     def order(self, date: datetime.date, price_date=None) -> _MassOrderResult:
         mass_result = _MassOrderResult(order_results=[])
@@ -84,10 +84,10 @@ class Backtester:
 
         self.price_provider.download_missing(symbols)
         
-        others = self.holder.symbols
+        others = self.account.symbols
 
         if self.quantity_in_decimal:
-            equity = self.holder.equity
+            equity = self.account.equity
 
             for _, row in orders_dataframe.iterrows():
                 symbol = row["symbol"]
@@ -100,7 +100,7 @@ class Backtester:
 
                     
 
-                    result = self.holder.order(Order(symbol, quantity, price))
+                    result = self.account.order(Order(symbol, quantity, price))
                     mass_result.append(result)
                     
                     if result.success:
@@ -116,7 +116,7 @@ class Backtester:
 
                 price = self.price_provider.get(price_date, symbol)
                 if price and not numpy.isnan(price):
-                    result = self.holder.order(Order(symbol, quantity, price))
+                    result = self.account.order(Order(symbol, quantity, price))
                     mass_result.append(result)
                     
                     if result.success:
@@ -130,7 +130,7 @@ class Backtester:
             closed = 0
             
             for symbol in others:
-                holding = self.holder[symbol]
+                holding = self.account[symbol]
                 
                 if not holding:
                     continue
@@ -140,7 +140,7 @@ class Backtester:
                     price = holding.price
                     print(f"[warning] no price available for {symbol}, using last price: {price}", file=sys.stderr)
                 
-                result = self.holder.order(Order(symbol, -holding.quantity, price))
+                result = self.account.order(Order(symbol, -holding.quantity, price))
                 mass_result.append(result)
                 
                 if result.success:
@@ -153,7 +153,7 @@ class Backtester:
         return mass_result
 
     def update_price(self, date):
-        for holding in self.holder.holdings:
+        for holding in self.account.holdings:
             price = self.price_provider.get(date, holding.symbol)
 
             if price and not numpy.isnan(price):
@@ -220,9 +220,9 @@ class Backtester:
             exporter.on_skip(date, reason, ordered)
     
     def fire_snapshot(self, date: datetime.date, result: _MassOrderResult, postponned=None):
-        cash = float(self.holder.cash)
-        equity = float(self.holder.equity)
-        holdings = self.holder.holdings
+        cash = float(self.account.cash)
+        equity = float(self.account.equity)
+        holdings = self.account.holdings
         ordered = result is not None
         
         snapshot = Snapshot(

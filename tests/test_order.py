@@ -19,6 +19,31 @@ class OrderTest(unittest.TestCase):
         order = backtest.Order("AAPL", -15, 2)
         self.assertEqual(backtest.OrderDirection.SELL, order.direction)
 
+    def test_valid(self):
+        order = backtest.Order(None, 15, 2)
+        self.assertFalse(order.valid)
+
+        order = backtest.Order("", 15, 2)
+        self.assertFalse(order.valid)
+
+        order = backtest.Order("   ", 15, 2)
+        self.assertFalse(order.valid)
+        
+        order = backtest.Order("AAPL", 0, 2)
+        self.assertFalse(order.valid)
+        
+        order = backtest.Order("AAPL", 15, 0)
+        self.assertFalse(order.valid)
+        
+        order = backtest.Order("AAPL", 15, -5)
+        self.assertFalse(order.valid)
+        
+        order = backtest.Order("AAPL", 15, 5)
+        self.assertTrue(order.valid)
+        
+        order = backtest.Order("AAPL", -15, 5)
+        self.assertTrue(order.valid)
+
 
 class FeeModelTest(unittest.TestCase):
 

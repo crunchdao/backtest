@@ -23,3 +23,6 @@ def is_float(value: str):
 
 def is_number(value: str):
     return is_int(value) or is_float(value)
+
+def is_blank(value: str):
+    return value is None or len(value.strip()) == 0

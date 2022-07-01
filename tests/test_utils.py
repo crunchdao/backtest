@@ -26,3 +26,10 @@ class UtilsTest(unittest.TestCase):
         self.assertTrue(backtest.utils.is_number("1"))
 
         self.assertFalse(backtest.utils.is_number("hello"))
+
+    def test_is_not_blank(self):
+        self.assertTrue(backtest.utils.is_blank(None))
+        self.assertTrue(backtest.utils.is_blank(""))
+        self.assertTrue(backtest.utils.is_blank("   "))
+
+        self.assertFalse(backtest.utils.is_blank("hello"))

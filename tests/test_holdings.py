@@ -10,12 +10,14 @@ class HoldingTest(unittest.TestCase):
 
     def test_merge(self):
         holding = backtest.Holding("AAPL", 15, 2)
-        other = backtest.Holding("AAPL", 30, 4)
-        
-        holding.merge(other)
+        order = backtest.Order("AAPL", 30, 4)
 
-        self.assertEqual(holding.quantity, other.quantity)
-        self.assertEqual(holding.price, other.price)
+        expected_quantity = holding.quantity + order.quantity
+        
+        holding.merge(order)
+
+        self.assertEqual(expected_quantity, holding.quantity)
+        self.assertEqual(order.price, holding.price)
 
     def test_str(self):
         holding = backtest.Holding("AAPL", 15, 2)
