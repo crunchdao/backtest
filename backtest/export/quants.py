@@ -3,9 +3,11 @@ import datetime
 import os
 import sys
 import typing
+import warnings
 
 import pandas
 import quantstats
+import seaborn
 
 from .base import BaseExporter
 from .model import Snapshot
@@ -27,7 +29,9 @@ class QuantStatsExporter(BaseExporter):
         
         self.data_frame = pandas.DataFrame(columns=["date", "equity"])
         self.data_frame.set_index("date", inplace=True)
-
+        
+        warnings.filterwarnings(action='ignore', category=UserWarning, module=seaborn.__name__)
+        
     @abc.abstractmethod
     def initialize(self) -> None:
         for file in [self.html_output_file, self.csv_output_file]:
