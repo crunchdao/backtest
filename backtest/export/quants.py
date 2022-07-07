@@ -20,12 +20,14 @@ class QuantStatsExporter(BaseExporter):
         html_output_file='report.html',
         csv_output_file='report.csv',
         benchmark_ticker="SPY",
-        auto_delete=False
+        auto_delete=False,
+        auto_override=False
     ):
         self.html_output_file = html_output_file
         self.csv_output_file = csv_output_file
         self.benchmark_ticker = benchmark_ticker
         self.auto_delete = auto_delete
+        self.auto_override = auto_override
         
         self.data_frame = pandas.DataFrame(columns=["date", "equity"])
         self.data_frame.set_index("date", inplace=True)
@@ -34,6 +36,9 @@ class QuantStatsExporter(BaseExporter):
         
     @abc.abstractmethod
     def initialize(self) -> None:
+        if self.auto_override:
+            return
+        
         for file in [self.html_output_file, self.csv_output_file]:
             if file is None or not os.path.exists(file):
                 continue
@@ -90,13 +95,13 @@ class QuantStatsExporter(BaseExporter):
         merged.set_index('date', drop=True, inplace=True)
         
         if self.csv_output_file is not None:
-            if not os.path.exists(self.csv_output_file):
+            if self.auto_override or not os.path.exists(self.csv_output_file):
                 merged.to_csv(self.csv_output_file)
             else:
                 print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
 
         if self.html_output_file is not None:
-            if not os.path.exists(self.html_output_file):
+            if self.auto_override or not os.path.exists(self.html_output_file):
                 quantstats.reports.html(merged.daily_profit_pct, merged.close, output=True, download_filename=self.html_output_file)
             else:
                 print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
