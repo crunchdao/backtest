@@ -35,7 +35,7 @@ class QuantStatsExporter(BaseExporter):
     @abc.abstractmethod
     def initialize(self) -> None:
         for file in [self.html_output_file, self.csv_output_file]:
-            if not os.path.exists(file):
+            if file is None or not os.path.exists(file):
                 continue
             
             can_delete = self.auto_delete
@@ -89,12 +89,14 @@ class QuantStatsExporter(BaseExporter):
         merged = history_df.merge(bench, on='date', how='inner')
         merged.set_index('date', drop=True, inplace=True)
         
-        if not os.path.exists(self.csv_output_file):
-            merged.to_csv(self.csv_output_file)
-        else:
-            print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
+        if self.csv_output_file is not None:
+            if not os.path.exists(self.csv_output_file):
+                merged.to_csv(self.csv_output_file)
+            else:
+                print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
 
-        if not os.path.exists(self.html_output_file):
-            quantstats.reports.html(merged.daily_profit_pct, merged.close, output=True, download_filename=self.html_output_file)
-        else:
-            print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
+        if self.html_output_file is not None:
+            if not os.path.exists(self.html_output_file):
+                quantstats.reports.html(merged.daily_profit_pct, merged.close, output=True, download_filename=self.html_output_file)
+            else:
+                print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
