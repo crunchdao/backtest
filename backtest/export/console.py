@@ -114,7 +114,7 @@ class JsonConsoleDelegate(ConsoleDelegate):
         self._coma()
         
         self._print_json({
-            "event": "skip",
+            "event": "SKIP",
             "date": str(date),
             "skipReason": reason,
             "ordered": ordered,
@@ -125,7 +125,7 @@ class JsonConsoleDelegate(ConsoleDelegate):
         self._coma()
         
         self._print_json({
-            "event": "snapshot",
+            "event": "SNAPSHOT",
             "date": str(snapshot.date),
             "ordered": snapshot.ordered,
             "cash": snapshot.cash,
