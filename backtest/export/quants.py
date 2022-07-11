@@ -81,27 +81,34 @@ class QuantStatsExporter(BaseExporter):
 
         history_df.reset_index(inplace=True)
 
-        bench = quantstats.utils.download_returns(self.benchmark_ticker)
-        bench = bench.reset_index()
-        bench = bench.rename(columns={"Date": "date", "Close": "close"})
-
         history_df['date'] = history_df['date'].astype(str)
-        bench['date'] = bench['date'].astype(str)
-
         history_df['date'] = pandas.to_datetime(history_df['date'], format="%Y-%m-%d")
-        bench['date'] = pandas.to_datetime(bench['date'], format="%Y-%m-%d")
-
-        merged = history_df.merge(bench, on='date', how='inner')
-        merged.set_index('date', drop=True, inplace=True)
+        
+        if self.benchmark_ticker:
+            bench = quantstats.utils.download_returns(self.benchmark_ticker)
+            bench = bench.reset_index()
+            bench = bench.rename(columns={"Date": "date", "Close": "close"})
+    
+            bench['date'] = bench['date'].astype(str)
+            bench['date'] = pandas.to_datetime(bench['date'], format="%Y-%m-%d")
+    
+            merged = history_df.merge(bench, on='date', how='inner')
+            merged.set_index('date', drop=True, inplace=True)
+            
+            returns = merged.daily_profit_pct
+            benchmark = merged.close
+        else:
+            returns = history_df.set_index("date").daily_profit_pct
+            benchmark = None
         
         if self.csv_output_file is not None:
             if self.auto_override or not os.path.exists(self.csv_output_file):
-                merged.to_csv(self.csv_output_file)
+                returns.to_csv(self.csv_output_file)
             else:
                 print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
 
         if self.html_output_file is not None:
             if self.auto_override or not os.path.exists(self.html_output_file):
-                quantstats.reports.html(merged.daily_profit_pct, merged.close, output=True, download_filename=self.html_output_file)
+                quantstats.reports.html(returns, benchmark=benchmark, output=True, download_filename=self.html_output_file)
             else:
                 print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
