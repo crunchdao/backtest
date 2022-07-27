@@ -5,7 +5,7 @@ numpy
 pandas
 py_expression_eval
 pyarrow
-quantstats==0.0.59
+quantstats
 requests
 tqdm
 yfinance
