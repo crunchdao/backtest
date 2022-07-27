@@ -2,8 +2,11 @@ import datetime
 import sys
 
 import click
+import dotenv
 
 from .utils import is_number
+
+dotenv.load_dotenv()
 
 
 @click.command()
