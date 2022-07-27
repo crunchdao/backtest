@@ -33,3 +33,20 @@ class UtilsTest(unittest.TestCase):
         self.assertTrue(backtest.utils.is_blank("   "))
 
         self.assertFalse(backtest.utils.is_blank("hello"))
+
+    def test_ensure_not_blank(self):
+        def case(value: str, property: str, message: str):
+            with self.assertRaises(ValueError) as context:
+                backtest.utils.ensure_not_blank(value, property)
+            
+            exception = context.exception
+            self.assertEquals(message, str(exception))
+        
+        case(None, None, "must not be blank")
+        case(None, "dummy", "dummy must not be blank")
+        case("", None, "must not be blank")
+        case("", "dummy", "dummy must not be blank")
+        case("   ", None, "must not be blank")
+        case("   ", "dummy", "dummy must not be blank")
+
+        self.assertEqual("hello", backtest.utils.ensure_not_blank("hello"))
