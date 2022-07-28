@@ -14,6 +14,7 @@ A small backtesting utility.
       - [Data Sources](#data-sources)
         - [Yahoo](#yahoo)
         - [CoinMarketCap](#coinmarketcap)
+        - [FactSet](#factset)
         - [File](#file)
           - [.parquet](#parquet)
 
@@ -104,9 +105,19 @@ Only one data source can be used at once.
 | `--coinmarketcap-force-mapping-refresh` | | `false` | | Force a mapping refresh. This is usually only done automatically the first time of using this data source. |
 | `--coinmarketcap-page-size` | `<size>` | `10_000` | `number` | Specify the page size while building the mapping. |
 
+##### FactSet
+
+| Option | Value | Default | Format | Description |
+| --- | --- | --- | --- | --- |
+| `--factset` | | `false` | | Enable factset as the data source. |
+| `--factset-username-serial` | | `$FACTSET_USERNAME_SERIAL` | | Specify the factset's username serial to use. |
+| `--factset-api-key` | | `$FACTSET_API_KEY` | | Specify the factset's api key to use. |
+
 ##### File
 
 Use a static file as a price data source.
+
+If another data source is specified, files sources will be used first in a delegated data source. Meaning that if the data are not available in the file, the next data source will be used.
 
 ###### .parquet
 
