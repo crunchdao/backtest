@@ -22,10 +22,13 @@ class DataSource:
 
     @abc.abstractmethod
     def get_name(self) -> str:
-        class_name = self.__class__.__name__
+        base_name = DataSource.__name__
 
-        data_source = DataSource.__name__
-        if data_source in class_name:
-            return class_name.replace(data_source, "")
+        if self.__class__ == DataSource:
+            return base_name
+
+        class_name = self.__class__.__name__
+        if base_name in class_name:
+            return class_name.replace(base_name, "")
         
         return class_name
