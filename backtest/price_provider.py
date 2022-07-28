@@ -96,6 +96,12 @@ class PriceProvider:
                 end=self.end + one_day
             )
 
+            if prices is None:
+                prices = pandas.DataFrame(
+                    index=pandas.Index([], name="Date"),
+                    columns=list(missing_symbols
+                ))
+
             if symbol_count == 1:
                 first = next(iter(missing_symbols))
 

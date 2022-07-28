@@ -46,6 +46,9 @@ dotenv.load_dotenv()
 @click.option('--coinmarketcap', is_flag=True, help="Use coin market cap as the data source.")
 @click.option('--coinmarketcap-force-mapping-refresh', is_flag=True, help="Force a mapping refresh.")
 @click.option('--coinmarketcap-page-size', default=10_000, help="Specify the query page size when building the mapping.")
+@click.option('--factset', is_flag=True, help="Use factset prices as the data source.")
+@click.option('--factset-username-serial', type=str, envvar="FACTSET_USERNAME_SERIAL", help="Specify the factset username serial to use.")
+@click.option('--factset-api-key', type=str, envvar="FACTSET_API_KEY", help="Specify the factset api key to use.")
 @click.option('--file-parquet', type=str, required=False, help="Use a .parquet file as the data source.")
 @click.option('--file-parquet-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--file-parquet-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
@@ -63,6 +66,7 @@ def main(
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
+    factset: bool, factset_username_serial: str, factset_api_key: str,
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price
 ):
     now = datetime.date.today()
@@ -110,27 +114,48 @@ def main(
             page_size=coinmarketcap_page_size
         )
 
-    if file_parquet:
+    if factset:
         if data_source is not None:
             raise ValueError("multiple data source provided")
 
+        from .data.source import FactsetDataSource
+        data_source = FactsetDataSource(
+            username_serial=factset_username_serial,
+            api_key=factset_api_key
+        )
+
+    if file_parquet:
         from .data.source.file import RowParquetFileDataSource
-        data_source = RowParquetFileDataSource(
+        file_data_source = RowParquetFileDataSource(
             path=file_parquet,
             date_column=file_parquet_column_date,
             symbol_column=file_parquet_column_symbol,
             price_column=file_parquet_column_price
         )
 
+        if data_source is not None:
+            print(
+                f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
+
+            from .data.source import DelegateDataSource
+            data_source = DelegateDataSource([
+                file_data_source,
+                data_source,
+            ])
+        else:
+            data_source = file_data_source
+
     if data_source is None:
         from .data.source import YahooDataSource
         data_source = YahooDataSource()
 
-        print(f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
+        print(
+            f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
 
     from .price_provider import SymbolMapper
-    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
-    
+    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(
+        symbol_mapping)
+
     fee_model = None
     if fee_model_value:
         if is_number(fee_model_value):
@@ -179,7 +204,8 @@ def main(
         from .export import ConsoleExporter
         exporters.append(ConsoleExporter())
 
-        print(f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
+        print(
+            f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
     from .backtest import Backtester
     Backtester(
@@ -198,4 +224,3 @@ def main(
         weekends=weekends,
         holidays=holidays
     )
-

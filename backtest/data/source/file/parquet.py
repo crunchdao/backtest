@@ -36,7 +36,7 @@ class RowParquetFileDataSource(DataSource):
         self.price_column = price_column
         
         table = pyarrow.parquet.read_table(path, memory_map=True)
-    
+        
         _expect_column(table, date_column, "date32[day]")
         _expect_column(table, symbol_column, "string")
         _expect_column(table, price_column, "double")
@@ -59,7 +59,10 @@ class RowParquetFileDataSource(DataSource):
         
         prices = None
         if len(founds):
-            prices = pandas.DataFrame(self.storage.loc[start:end, founds])
+            start = pandas.to_datetime(start)
+            end = pandas.to_datetime(end)
+            
+            prices = self.storage[(self.storage.index >= start) & (self.storage.index <= end)][list(founds)].copy()
         else:
             prices = pandas.DataFrame(
                 index=pandas.DatetimeIndex(
@@ -68,8 +71,7 @@ class RowParquetFileDataSource(DataSource):
                 )
             )
         
-        for symbol in missings:
-            prices[symbol] = numpy.nan
+        prices[list(missings)] = numpy.nan
         
         return prices
 

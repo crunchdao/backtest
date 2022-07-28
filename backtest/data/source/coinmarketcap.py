@@ -119,7 +119,7 @@ class CoinMarketCapDataSource(DataSource):
         if prices is not None:
             prices.set_index(keys="Date", drop=True, inplace=True)
 
-        return prices if prices is not None else pandas.DataFrame()
+        return prices
 
     @abc.abstractmethod
     def is_closeable(self) -> bool:
