@@ -9,6 +9,7 @@ A small backtesting utility.
     - [Options](#options)
       - [Exporters](#exporters)
         - [Console](#console)
+        - [Dump](#dump)
         - [Influx](#influx)
         - [QuantStats](#quantstats)
       - [Data Sources](#data-sources)
@@ -60,6 +61,16 @@ The console exporter allows a quick look at the backtest.
 | `--console-file` | `<file>` | `out` | `[out, err]` | Change the output file. |
 | `--console-hide-skips` | | `false` | | Do not the skipped days. |
 | `--console-text-no-color` | | `false` | | Disable colors in the output. (only if the format is `text`) |
+
+##### Dump
+
+The dump exporter generate a dump of the portfolio at each day.
+
+| Option | Value | Default | Format | Description |
+| --- | --- | --- | --- | --- |
+| `--dump` | | `false` | | Enable the dump exporter. |
+| `--dump-output-file` | `<file>` | `dump.csv` | `path` | Specify the output file. |
+| `--dump-auto-delete` | | `false` | | Automatically delete the previous dump file if it is present. |
 
 ##### Influx
 
