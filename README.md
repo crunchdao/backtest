@@ -7,6 +7,7 @@ A small backtesting utility.
 [![PyTest](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml/badge.svg)](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml)
 
 - [crunchdao-backtest](#crunchdao-backtest)
+  - [Install](#install)
   - [Usage](#usage)
     - [Options](#options)
       - [Exporters](#exporters)
@@ -21,10 +22,16 @@ A small backtesting utility.
         - [File](#file)
           - [.parquet](#parquet)
 
+## Install
+
+```
+python3 -m pip install --upgrade git+https://github.com/crunchdao/backtest
+```
+
 ## Usage
 
 ```bash
-python3 main.py [OPTIONS]
+python3 -m backtest [OPTIONS]
 ```
 
 ### Options
