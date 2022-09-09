@@ -6,7 +6,7 @@ with open('requirements.txt') as fd:
     requirements = fd.read().splitlines()
 
 setup(
-    name='datacrunch-backtest',
+    name='crunchdao-backtest',
     version='1.0.0',
     description='Simple backtester',
     author='Enzo CACERES',

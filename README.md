@@ -1,10 +1,10 @@
-# datacrunch-backtest
+# crunchdao-backtest
 
 A small backtesting utility.
 
-[![PyTest](https://github.com/datacrunch-com/datacrunch-backtest/actions/workflows/pytest.yml/badge.svg)](https://github.com/datacrunch-com/datacrunch-backtest/actions/workflows/pytest.yml)
+[![PyTest](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml/badge.svg)](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml)
 
-- [datacrunch-backtest](#datacrunch-backtest)
+- [crunchdao-backtest](#crunchdao-backtest)
   - [Usage](#usage)
     - [Options](#options)
       - [Exporters](#exporters)
