@@ -2,6 +2,8 @@
 
 A small backtesting utility.
 
+![image](https://user-images.githubusercontent.com/7386242/189368488-b0c30d48-9a1f-4362-9f78-10a451535682.png)
+
 [![PyTest](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml/badge.svg)](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml)
 
 - [crunchdao-backtest](#crunchdao-backtest)
