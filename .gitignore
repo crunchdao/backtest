@@ -261,3 +261,4 @@ cython_debug/
 /data/
 /report.csv
 /report.html
+dump.csv

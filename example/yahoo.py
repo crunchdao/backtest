@@ -36,6 +36,9 @@ backtest.Backtester(
     fee_model=fee_model,
     exporters=[
         backtest.export.ConsoleExporter(),
+        backtest.export.DumpExporter(
+            auto_override=True
+        ),
         backtest.export.QuantStatsExporter(
             auto_override=True
         ),

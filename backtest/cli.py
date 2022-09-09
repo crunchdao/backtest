@@ -31,6 +31,9 @@ dotenv.load_dotenv()
 @click.option('--console-file', type=click.Choice(['out', 'err']), default="out", show_default=True, help="Console output destination file.")
 @click.option('--console-hide-skips', is_flag=True, show_default=True, help="Should the console hide skipped days?")
 @click.option('--console-text-no-color', is_flag=True, help="Disable colors in the console output.")
+@click.option('--dump', is_flag=True, help="Enable the dump exporter.")
+@click.option('--dump-output-file', type=str, default="dump.csv", show_default=True, help="Specify the output file.")
+@click.option('--dump-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
 @click.option('--influx', is_flag=True, help="Enable the influx exporter.")
 @click.option('--influx-host', type=str, default="localhost", show_default=True, help="Influx's database host.")
 @click.option('--influx-port', type=int, default=8086, show_default=True, help="Influx's database port.")
@@ -62,6 +65,7 @@ def main(
     weekends, holidays, symbol_mapping, no_caching,
     fee_model_value,
     console, console_format, console_file, console_hide_skips, console_text_no_color,
+    dump: str, dump_output_file: str, dump_auto_delete: bool,
     influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
     yahoo,
@@ -179,6 +183,13 @@ def main(
             }[console_file],
             hide_skips=console_hide_skips,
             no_color=console_text_no_color
+        ))
+
+    if dump:
+        from .export import DumpExporter
+        exporters.append(DumpExporter(
+            output_file=dump_output_file,
+            auto_delete=dump_auto_delete,
         ))
 
     if influx:
