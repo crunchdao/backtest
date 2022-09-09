@@ -153,6 +153,10 @@ class AccountTest(unittest.TestCase):
         relative = account.to_relative_order(aapl_short)
         self.assertEqual(aapl_short.quantity * 2, relative.quantity)
 
+        order = backtest.Order("AAPL", 44, 1)
+        relative = account.to_relative_order(order)
+        self.assertEqual(2, relative.quantity)
+
         account = backtest.Account()
         result = account.place_order(aapl_short)
 
@@ -164,6 +168,10 @@ class AccountTest(unittest.TestCase):
 
         relative = account.to_relative_order(aapl)
         self.assertEqual(aapl.quantity * 2, relative.quantity)
+
+        order = backtest.Order("AAPL", -44, 1)
+        relative = account.to_relative_order(order)
+        self.assertEqual(-2, relative.quantity)
 
     @staticmethod
     def _create_dummy(add=True) -> typing.Tuple[backtest.Account, backtest.Holding, backtest.Holding]:
