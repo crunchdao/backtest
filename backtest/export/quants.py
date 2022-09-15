@@ -29,8 +29,8 @@ class QuantStatsExporter(BaseExporter):
         self.auto_delete = auto_delete
         self.auto_override = auto_override
         
-        self.data_frame = pandas.DataFrame(columns=["date", "equity"])
-        self.data_frame.set_index("date", inplace=True)
+        self.dataframe = pandas.DataFrame(columns=["date", "equity"])
+        self.dataframe.set_index("date", inplace=True)
         
         warnings.filterwarnings(action='ignore', category=UserWarning, module=seaborn.__name__)
         
@@ -56,8 +56,8 @@ class QuantStatsExporter(BaseExporter):
         if snapshot.postponned is not None:
             date = snapshot.postponned
         
-        self.data_frame = pandas.concat([
-            self.data_frame,
+        self.dataframe = pandas.concat([
+            self.dataframe,
             pandas.DataFrame(
                 [[date, snapshot.equity]],
                 columns=["date", "equity"],
@@ -66,11 +66,11 @@ class QuantStatsExporter(BaseExporter):
 
     @abc.abstractmethod
     def finalize(self) -> None:
-        if not len(self.data_frame):
+        if not len(self.dataframe):
             print("[warning] cannot create tearsheet: dataframe is empty", file=sys.stderr)
             return
         
-        history_df = self.data_frame.copy()
+        history_df = self.dataframe.copy()
         history_df.set_index("date", inplace=True)
 
         history_df['profit'] = history_df['equity'] - history_df['equity'].shift(1)
