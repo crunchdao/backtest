@@ -45,6 +45,13 @@ dotenv.load_dotenv()
 @click.option('--quantstats-output-file-csv', type=str, default="report.csv", show_default=True, help="Specify the output csv file.")
 @click.option('--quantstats-benchmark-ticker', type=str, default="SPY", show_default=True, help="Specify the symbol to use as a benchmark.")
 @click.option('--quantstats-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
+@click.option('--specific-return', type=str, help="Enable the specific return exporter by proving a .parquet.")
+@click.option('--specific-return-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
+@click.option('--specific-return-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
+@click.option('--specific-return-column-value', type=str, default="specific_return", show_default=True, help="Specify the column name containing the value.")
+@click.option('--specific-return-output-file-html', type=str, default="sr-report.html", show_default=True, help="Specify the output html file.")
+@click.option('--specific-return-output-file-csv', type=str, default="sr-report.csv", show_default=True, help="Specify the output csv file.")
+@click.option('--specific-return-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
 @click.option('--yahoo', is_flag=True, help="Use yahoo finance as the data source.")
 @click.option('--coinmarketcap', is_flag=True, help="Use coin market cap as the data source.")
 @click.option('--coinmarketcap-force-mapping-refresh', is_flag=True, help="Force a mapping refresh.")
@@ -68,6 +75,7 @@ def main(
     dump: str, dump_output_file: str, dump_auto_delete: bool,
     influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
+    specific_return: str, specific_return_column_date: str, specific_return_column_symbol: str, specific_return_column_value: str, specific_return_output_file_html: str, specific_return_output_file_csv: str, specific_return_auto_delete: bool,
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
     factset: bool, factset_username_serial: str, factset_api_key: str,
@@ -209,6 +217,18 @@ def main(
             csv_output_file=quantstats_output_file_csv,
             benchmark_ticker=quantstats_benchmark_ticker,
             auto_delete=quantstats_auto_delete,
+        ))
+
+    if specific_return:
+        from .export import SpecificReturnExporter
+        exporters.append(SpecificReturnExporter(
+            path=specific_return,
+            date_column=specific_return_column_date,
+            symbol_column=specific_return_column_symbol,
+            value_column=specific_return_column_value,
+            html_output_file=specific_return_output_file_html,
+            csv_output_file=specific_return_output_file_csv,
+            auto_delete=specific_return_auto_delete,
         ))
 
     if not len(exporters):
