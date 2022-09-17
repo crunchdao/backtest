@@ -79,7 +79,7 @@ class SpecificReturnExporter(BaseExporter):
                 .to_dict()[self.value_column]
 
             self.value += sum([
-                market_price * mapping.get(symbol, 0)
+                market_price * mapping.get(symbol, 0) / 100
                 for symbol, market_price in self.previous_market_prices.items()
             ])
         
