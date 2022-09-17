@@ -117,7 +117,7 @@ Generate a tearsheet from the specific return backtest data.
 | `--specific-return` | `<file>` | | `path` | Enable the specific return exporter by proving a file. |
 | `--specific-return-column-date` | `<column>` | `date` | `string` | Specify the name of column containing the dates informations. |
 | `--specific-return-column-symbol` | `<column>` | `symbol` | `string` | Specify the name of column containing the symbols informations. |
-| `--specific-return-column-price` | `<column>` | `price` | `string` | Specify the name of column containing the prices informations. |
+| `--specific-return-column-value` | `<column>` | `specific_return` | `string` | Specify the name of column containing the value informations. |
 | `--specific-return-output-file-html` | `<file>` | `sr-report.html` | `path` | Specify the output file containing the tearsheet. |
 | `--specific-return-output-file-csv` | `<file>` | `sr-report.csv` | `path` | Specify the output file containing raw returns. |
 | `--specific-return-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
