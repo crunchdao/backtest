@@ -26,3 +26,6 @@ class Snapshot:
     def holding_count(self) -> int:
         return len(self.holdings)
     
+    @property
+    def real_date(self) -> datetime.date:
+        return self.postponned if self.postponned else self.date
