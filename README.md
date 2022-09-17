@@ -15,6 +15,7 @@ A small backtesting utility.
         - [Dump](#dump)
         - [Influx](#influx)
         - [QuantStats](#quantstats)
+        - [Specific Return](#specific-return)
       - [Data Sources](#data-sources)
         - [Yahoo](#yahoo)
         - [CoinMarketCap](#coinmarketcap)
@@ -106,6 +107,20 @@ Generate a tearsheet from the backtest data.
 | `--quantstats-output-file-csv` | `<file>` | `report.csv` | `path` | Specify the output file containing raw returns. |
 | `--quantstats-benchmark-ticker` | `<ticker>` | `SPY` | `symbol` | Specify the ticker to use as a benchmark in the tearsheet. |
 | `--quantstats-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
+
+##### Specific Return
+
+Generate a tearsheet from the specific return backtest data.
+
+| Option | Value | Default | Format | Description |
+| --- | --- | --- | --- | --- |
+| `--specific-return` | `<file>` | | `path` | Enable the specific return exporter by proving a file. |
+| `--specific-return-column-date` | `<column>` | `date` | `string` | Specify the name of column containing the dates informations. |
+| `--specific-return-column-symbol` | `<column>` | `symbol` | `string` | Specify the name of column containing the symbols informations. |
+| `--specific-return-column-price` | `<column>` | `price` | `string` | Specify the name of column containing the prices informations. |
+| `--specific-return-output-file-html` | `<file>` | `sr-report.html` | `path` | Specify the output file containing the tearsheet. |
+| `--specific-return-output-file-csv` | `<file>` | `sr-report.csv` | `path` | Specify the output file containing raw returns. |
+| `--specific-return-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
 
 #### Data Sources
 
