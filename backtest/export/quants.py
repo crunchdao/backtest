@@ -86,13 +86,14 @@ class QuantStatsExporter(BaseExporter):
         
         if self.benchmark_ticker:
             bench = quantstats.utils.download_returns(self.benchmark_ticker)
+
             bench = bench.reset_index()
             bench = bench.rename(columns={"Date": "date", "Close": "close"})
-    
-            bench['date'] = bench['date'].astype(str)
-            bench['date'] = pandas.to_datetime(bench['date'], format="%Y-%m-%d")
-    
+
+            bench['date'] = pandas.to_datetime(bench['date'], format="%Y-%m-%d").dt.tz_localize(None)
+
             merged = history_df.merge(bench, on='date', how='inner')
+
             merged.set_index('date', drop=True, inplace=True)
             
             returns = merged.daily_profit_pct
