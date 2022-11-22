@@ -1,6 +1,7 @@
 import abc
 import os
 import sys
+import typing
 
 import pandas
 import quantstats
@@ -16,7 +17,7 @@ class SpecificReturnExporter(BaseExporter):
 
     def __init__(
         self,
-        path: str,
+        path_or_dataframe_or_dict: typing.Union[str, pandas.DataFrame, dict],
         date_column="date",
         symbol_column="symbol",
         value_column="specific_return",
@@ -35,16 +36,10 @@ class SpecificReturnExporter(BaseExporter):
         self.auto_delete = auto_delete
         self.auto_override = auto_override
 
-        self.specific_returns = pandas.read_parquet(path) if path.endswith(".parquet") else pandas.read_csv(path)
-        _expect_column(self.specific_returns, date_column)
-        _expect_column(self.specific_returns, symbol_column)
-        _expect_column(self.specific_returns, value_column)
-
-        self.specific_returns[self.date_column] = pandas.to_datetime(self.specific_returns[self.date_column]).dt.date
-        self.specific_returns = self.specific_returns \
-            .groupby(self.date_column) \
-            .apply(lambda x, self=self: x.set_index(self.symbol_column)[self.value_column].to_dict()) \
-            .to_dict()
+        if isinstance(path_or_dataframe_or_dict, dict):
+            self.specific_returns = path_or_dataframe_or_dict
+        else:
+            self.specific_returns = SpecificReturnExporter.load_as_nested_dict(path_or_dataframe_or_dict, date_column, symbol_column, value_column)
        
         self.value = None
         self.previous_market_prices = {}
@@ -123,3 +118,37 @@ class SpecificReturnExporter(BaseExporter):
                 quantstats.reports.html(returns, output=True, download_filename=self.html_output_file)
             else:
                 print(f"[warning] {self.html_output_file} already exists", file=sys.stderr)
+
+    @staticmethod
+    def load_as_nested_dict(
+        path_or_dataframe: typing.Union[str, pandas.DataFrame],
+        date_column="date",
+        symbol_column="symbol",
+        value_column="specific_return",
+    ) -> pandas.DataFrame:
+        if isinstance(path_or_dataframe, pandas.DataFrame):
+            dataframe = path_or_dataframe
+        else:
+            dataframe = SpecificReturnExporter.load(path_or_dataframe, date_column, symbol_column, value_column)
+
+        return dataframe \
+            .groupby(date_column) \
+            .apply(lambda x: x.set_index(symbol_column)[value_column].to_dict()) \
+            .to_dict()
+
+    @staticmethod
+    def load(
+        path: str,
+        date_column="date",
+        symbol_column="symbol",
+        value_column="specific_return",
+    ) -> pandas.DataFrame:
+        dataframe = pandas.read_parquet(path) if path.endswith(".parquet") else pandas.read_csv(path)
+        
+        _expect_column(dataframe, date_column)
+        _expect_column(dataframe, symbol_column)
+        _expect_column(dataframe, value_column)
+
+        dataframe[date_column] = pandas.to_datetime(dataframe[date_column]).dt.date
+
+        return dataframe

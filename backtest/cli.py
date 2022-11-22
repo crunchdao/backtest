@@ -222,7 +222,7 @@ def main(
     if specific_return:
         from .export import SpecificReturnExporter
         exporters.append(SpecificReturnExporter(
-            path=specific_return,
+            specific_return,
             date_column=specific_return_column_date,
             symbol_column=specific_return_column_symbol,
             value_column=specific_return_column_value,
