@@ -11,3 +11,4 @@ tqdm
 yfinance
 pytest
 python-dotenv
+colorama
