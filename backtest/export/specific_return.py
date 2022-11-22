@@ -41,7 +41,11 @@ class SpecificReturnExporter(BaseExporter):
         _expect_column(self.specific_returns, value_column)
 
         self.specific_returns[self.date_column] = pandas.to_datetime(self.specific_returns[self.date_column]).dt.date
-
+        self.specific_returns = self.specific_returns \
+            .groupby(self.date_column) \
+            .apply(lambda x, self=self: x.set_index(self.symbol_column)[self.value_column].to_dict()) \
+            .to_dict()
+       
         self.value = None
         self.previous_market_prices = {}
         self.history = []
@@ -74,14 +78,15 @@ class SpecificReturnExporter(BaseExporter):
         if self.value is None:
             self.value = snapshot.cash + sum(market_prices.values())
         else:
-            mapping = self.specific_returns[self.specific_returns[self.date_column] == date] \
-                .set_index(self.symbol_column) \
-                .to_dict()[self.value_column]
+            mapping = self.specific_returns.get(date, {})
 
-            self.value += sum([
-                market_price * mapping.get(symbol, 0) / 100
-                for symbol, market_price in self.previous_market_prices.items()
-            ])
+            if len(mapping):
+                self.value += sum([
+                    market_price * mapping.get(symbol, 0) / 100
+                    for symbol, market_price in self.previous_market_prices.items()
+                ])
+            else:
+                print(f"[warning] no specific return for date={date}")
         
         self.value -= snapshot.total_fees
         
