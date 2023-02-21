@@ -19,7 +19,7 @@ class DataFrameOrderProvider(OrderProvider):
         ) -> None:
         self.dataframe = dataframe
 
-        self.dataframe.rename({
+        self.dataframe.rename(columns={
             date_column: "date",
             symbol_column: "symbol",
             quantity_column: "quantity"
