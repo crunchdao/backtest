@@ -7,7 +7,7 @@ with open('requirements.txt') as fd:
 
 setup(
     name='crunchdao-backtest',
-    version='1.0.0',
+    version='1.0.1',
     description='Simple backtester',
     author='Enzo CACERES',
     author_email='caceresenzo1502@gmail.com',
