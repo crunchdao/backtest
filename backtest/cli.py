@@ -1,5 +1,6 @@
 import datetime
 import sys
+import pandas as pd
 
 import click
 import dotenv
@@ -63,6 +64,8 @@ dotenv.load_dotenv()
 @click.option('--file-parquet-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--file-parquet-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
 @click.option('--file-parquet-column-price', type=str, default="price", show_default=True, help="Specify the column name containing the prices.")
+@click.option('--rfr-file', type=str, help="Specify the path of the risk free rate file")
+@click.option('--rfr-file-column-date', type=str, default="date", help="Specify the date column of the risk free rate file")
 def main(
     start, end,
     order_file,
@@ -79,7 +82,8 @@ def main(
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
     factset: bool, factset_username_serial: str, factset_api_key: str,
-    file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price
+    file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
+    rfr_file: str, rfr_file_column_date: str
 ):
     now = datetime.date.today()
 
@@ -238,6 +242,12 @@ def main(
         print(
             f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
+    if rfr_file:
+        rfr = pd.read_parquet(rfr_file)
+        rfr = rfr.set_index(rfr_file_column_date)
+    else:
+        rfr = pd.Series()
+
     from .backtest import Backtester
     Backtester(
         start=start,
@@ -247,6 +257,7 @@ def main(
         quantity_in_decimal=quantity_in_decimal,
         auto_close_others=auto_close_others,
         data_source=data_source,
+        rfr=rfr,
         mapper=symbol_mapper,
         exporters=exporters,
         fee_model=fee_model,

@@ -19,6 +19,8 @@ class Account:
         self.fee_model = fee_model if fee_model else ConstantFeeModel(0)
 
         self.cash = initial_cash
+        self.total_long = 0
+        self.total_short = 0
         self._holdings: typing.Dict[str, Holding] = dict()
 
     @property
@@ -117,3 +119,7 @@ class Account:
     def _handle_cash(self, order: Order, fee: float):
         self.cash -= fee
         self.cash -= order.value
+
+    def interest_on_cash(self, rfr):
+        '''Interest income on cash from short sale - amount borrowed on the long position'''
+        self.cash += self.cash * ((((max((rfr - 0.17), 0) / 100) + 1) ** (1/365)) - 1)

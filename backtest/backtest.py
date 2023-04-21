@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 import sys
 import typing
+import pandas as pd
 
 from .account import Account
 from .data.source.base import DataSource
@@ -54,6 +55,7 @@ class Backtester:
         initial_cash: int,
         quantity_in_decimal: bool,
         data_source: DataSource,
+        rfr,
         auto_close_others: bool = True,
         exporters: typing.List[BaseExporter] = [],
         mapper: SymbolMapper = None,
@@ -70,6 +72,7 @@ class Backtester:
         self.start = max(next(iter(self.order_dates)), start) if len(self.order_dates) else None
 
         self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching)
+        self.rfr = rfr
         self.account = Account(initial_cash=initial_cash, fee_model=fee_model)
 
     def order(self, date: datetime.date, price_date=None) -> _MassOrderResult:
@@ -136,6 +139,23 @@ class Backtester:
 
         return mass_result
 
+    # def get_total_postions(self, date):
+        # self.account.total_long = 0
+        # self.account.total_short = 0
+        # for holding in self.account.holdings:
+        #     if holding.market_price < 0:
+        #         self.account.total_short += holding.market_price
+        #     else:
+        #         self.account.total_long += holding.market_price
+        # print(f"cash before: {self.account.cash}")
+
+        # interest income on cash from short sale - amount borrowed on the long position 
+        # self.account.cash += abs(self.account.total_short) * (((((rfr[rfr.date] + 0.5) / 100) + 1) ** (1/365)) - 1)
+        # self.account.cash += abs(self.account.cash) * (((((4.5 - 0.17) / 100) + 1) ** (1/365)) - 1)
+
+        # print(f"total short: {self.account.total_short}")
+        # print(f"cash after: {self.account.cash}")
+
 
     def update_price(self, date):
         for holding in self.account.holdings:
@@ -191,6 +211,8 @@ class Backtester:
             else:
                 self.update_price(date)
 
+            if len(self.rfr.index) > 0:
+                self.account.interest_on_cash(self.rfr[self.rfr.index <= pd.to_datetime(date)].iloc[-1][0])
             self.fire_snapshot(date, result)
 
             date += datetime.timedelta(days=1)
