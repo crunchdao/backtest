@@ -5,7 +5,8 @@ import backtest
 aapl = backtest.Order("AAPL", 42, 1)
 aapl_hold = backtest.Order("AAPL", 0, 1)
 aapl_short = backtest.Order("AAPL", -42, 1)
-
+cash = 1000000
+rfr = 4.17
 
 class AccountTest(unittest.TestCase):
 
@@ -133,6 +134,16 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(tsla, account.find_holding(tsla.symbol))
         
         self.assertIsNone(account.find_holding("CRUNCH"))
+
+    def test_interest_on_cash(self):
+        cash_after_interest = cash * (1 + max((rfr - 0.17), 0) / 100)
+        account = backtest.Account()
+        day = 1
+        while day <= 365:
+            account.interest_on_cash(rfr)
+            day +=1
+
+        self.assertEqual(cash_after_interest, round(account.cash))
 
     def test_to_relative_order(self):
         account = backtest.Account()
