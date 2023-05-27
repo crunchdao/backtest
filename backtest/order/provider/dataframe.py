@@ -13,6 +13,7 @@ class DataFrameOrderProvider(OrderProvider):
 
     def __init__(self,
             dataframe: pandas.DataFrame,
+            offset_before_trading: int,
             date_column="date",
             symbol_column="symbol",
             quantity_column="quantity"
@@ -24,8 +25,13 @@ class DataFrameOrderProvider(OrderProvider):
             symbol_column: "symbol",
             quantity_column: "quantity"
         }, inplace=True)
-
+        
         self.dataframe["date"] = self.dataframe["date"].astype('datetime64[ns]', copy=False)
+
+        if offset_before_trading != 0:
+            delta = pandas.tseries.offsets.BusinessDay(offset_before_trading)
+            self.dataframe["date"] += delta
+
 
     @functools.cache
     @abc.abstractmethod

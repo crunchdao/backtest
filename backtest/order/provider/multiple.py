@@ -90,11 +90,18 @@ class OrderFile:
 
 class MultipleFileOrderProvider(OrderProvider):
 
-    def __init__(self, directory, extension="csv") -> None:
+    def __init__(
+        self,
+        directory,
+        offset_before_trading: int,
+        extension="csv"
+    ) -> None:
         self.directory = directory
 
+        delta = pandas.tseries.offsets.BusinessDay(offset_before_trading)
+
         self.order_files = {
-            order_file.at: order_file
+            (order_file.at + delta).date(): order_file
             for order_file in OrderFile.load_from(
                 directory,
                 extension=extension
