@@ -20,6 +20,13 @@ class FileReader:
         return dataframe
 
     @staticmethod
+    def PARQUET(path):
+        dataframe = pandas.read_parquet(path)
+        dataframe.columns = ["symbol", "quantity"]
+
+        return dataframe
+
+    @staticmethod
     def JSON(path):
         with open(path, "r") as fd:
             content = json.loads(fd.read())
@@ -38,6 +45,8 @@ class FileReader:
         extension = extension.lower()
         if extension == "csv":
             return FileReader.CSV
+        elif extension == "parquet":
+            return FileReader.PARQUET
         elif extension == "json":
             return FileReader.JSON
 

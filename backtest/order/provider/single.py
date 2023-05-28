@@ -13,7 +13,7 @@ class SingleFileOrderProvider(DataFrameOrderProvider):
         quantity_column="quantity"
     ) -> None:
         super().__init__(
-            pandas.read_csv(path),
+            pandas.read_parquet(path) if path.endswith(".parquet") else pandas.read_csv(path),
             offset_before_trading,
             date_column=date_column,
             symbol_column=symbol_column,

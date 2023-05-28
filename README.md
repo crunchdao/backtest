@@ -47,7 +47,7 @@ python3 -m backtest [OPTIONS]
 | `--single-file-provider-column-symbol` | `<column>` | `symbol` | `string` | Change the symbol column name to use. |
 | `--single-file-provider-column-quantity` | `<column>` | `quantity` | `string` | Change the quantity column name to use. |
 | `--order-files` | `<directory>` | | `path` | The directory of order file to use. The filename must be a date. The file must contain symbol and quantity information. |
-| `--order-files-extension` | `<extension>` | `csv`  | `[csv, json]` | Change the file extension to use when listing for order files. |
+| `--order-files-extension` | `<extension>` | `csv`  | `[csv, parquet, json]` | Change the file extension to use when listing for order files. |
 | `--initial-cash` | `<amount>` | `100_000` | `number` | Change the initial cash to use for the backtesting. |
 | `--quantity-mode` | `<mode>` | `percent` | `[percent, share]` | If the mode is `share`, all quantities will be interpreted as integers. If the mode is `percent`, all values will be multiplied by the current cash value. |
 | `--auto-close-others` | | `false` | | Should other position be closed after an ordering? |
