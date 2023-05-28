@@ -11,8 +11,8 @@ dotenv.load_dotenv()
 
 
 @click.command()
-@click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(datetime.date.today() - datetime.timedelta(days=365)), show_default=True, help="Start date.")
-@click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(datetime.date.today()), show_default=True, help="End date.")
+@click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
+@click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 @click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
 @click.option('--order-file', type=str, default=None, show_default=True, help="Specify an order file to use.")
 @click.option('--order-files', type=str, default=None, show_default=True, help="Specify a directory containing order files to use.")
@@ -68,7 +68,7 @@ dotenv.load_dotenv()
 @click.option('--rfr-file', type=str, help="Specify the path of the risk free rate file")
 @click.option('--rfr-file-column-date', type=str, default="date", help="Specify the date column of the risk free rate file")
 def main(
-    start, end,
+    start: datetime.datetime, end: datetime.datetime,
     offset_before_trading: int,
     order_file,
     order_files, order_files_extension,
@@ -89,8 +89,6 @@ def main(
 ):
     now = datetime.date.today()
 
-    start = start.date()
-    end = end.date()
     quantity_in_decimal = quantity_mode == "percent"
 
     order_provider = None
@@ -114,11 +112,26 @@ def main(
     if order_provider is None:
         raise ValueError("no order provider available")
 
+    dates = order_provider.get_dates()
+    if not len(dates):
+        raise ValueError("no date found")
+
+    if start is not None:
+        start = start.date()
+    else:
+        start = dates[0]
+
+    if end is not None:
+        end = end.date()
+    else:
+        end = dates[-1]
+    
     if end > now:
         end = now
 
         print(f"[warning] end is after today, using: {now}", file=sys.stderr)
 
+    print(start, end)
     data_source = None
     if yahoo:
         from .data.source import YahooDataSource
