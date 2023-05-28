@@ -14,6 +14,7 @@ dotenv.load_dotenv()
 @click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 @click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
+@click.option('--offset-before-ending', type=int, default=0, show_default=True, help="Number of day to continue the backtest after every orders.")
 @click.option('--order-file', type=str, default=None, show_default=True, help="Specify an order file to use.")
 @click.option('--order-files', type=str, default=None, show_default=True, help="Specify a directory containing order files to use.")
 @click.option('--order-files-extension', type=click.Choice(['csv', 'parquet', 'json']), default="csv", show_default=True, help="Specify the extension of the order files.")
@@ -70,6 +71,7 @@ dotenv.load_dotenv()
 def main(
     start: datetime.datetime, end: datetime.datetime,
     offset_before_trading: int,
+    offset_before_ending: int,
     order_file,
     order_files, order_files_extension,
     single_file_provider_column_date, single_file_provider_column_symbol, single_file_provider_column_quantity,
@@ -126,12 +128,13 @@ def main(
     else:
         end = dates[-1]
     
+    end += datetime.timedelta(days=offset_before_ending)
+    
     if end > now:
         end = now
 
         print(f"[warning] end is after today, using: {now}", file=sys.stderr)
 
-    print(start, end)
     data_source = None
     if yahoo:
         from .data.source import YahooDataSource
@@ -167,8 +170,7 @@ def main(
         )
 
         if data_source is not None:
-            print(
-                f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
+            print(f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
 
             from .data.source import DelegateDataSource
             data_source = DelegateDataSource([
@@ -182,12 +184,10 @@ def main(
         from .data.source import YahooDataSource
         data_source = YahooDataSource()
 
-        print(
-            f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
+        print(f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
 
     from .price_provider import SymbolMapper
-    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(
-        symbol_mapping)
+    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
 
     fee_model = None
     if fee_model_value:

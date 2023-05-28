@@ -42,6 +42,7 @@ python3 -m backtest [OPTIONS]
 | `--start` | `<start date>` | `orders' first date` | `date` (ISO-8601) | The starting date of the backtesting. If the value is before the first ordering day, the value will be discarded. |
 | `--end` | `<end date>` | `orders' last date` | `date` (ISO-8601) | The ending date of the backtesting. If the value is after today, the value will be discarded. |
 | `--offset-before-trading` | `<days>` | `1` | `int` | Number of day to offset to push the signal before trading it. |
+| `--offset-before-ending` | `<days>` | `0` | `int` | Number of day to continue the backtest after every orders. |
 | `--order-file` | `<file>` | | `path` | The single order file to use. The file must contain symbol, quantity and date information. |
 | `--single-file-provider-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
 | `--single-file-provider-column-symbol` | `<column>` | `symbol` | `string` | Change the symbol column name to use. |
