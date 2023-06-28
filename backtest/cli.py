@@ -48,6 +48,11 @@ dotenv.load_dotenv()
 @click.option('--quantstats-output-file-csv', type=str, default="report.csv", show_default=True, help="Specify the output csv file.")
 @click.option('--quantstats-benchmark-ticker', type=str, default="SPY", show_default=True, help="Specify the symbol to use as a benchmark.")
 @click.option('--quantstats-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
+@click.option('--pdf', is_flag=True, help="Enable the quantstats exporter.")
+@click.option('--pdf-template', type=str, default="tearsheet.sketch", show_default=True, help="Specify the template file.")
+@click.option('--pdf-output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--pdf-auto-delete', is_flag=True, help="Should aa conflicting file be automatically deleted?")
+@click.option('--pdf-debug', is_flag=True, help="Enable renderer debugging.")
 @click.option('--specific-return', type=str, help="Enable the specific return exporter by proving a .parquet.")
 @click.option('--specific-return-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--specific-return-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
@@ -82,6 +87,7 @@ def main(
     dump: str, dump_output_file: str, dump_auto_delete: bool,
     influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
+    pdf: bool, pdf_template: str, pdf_output_file: str, pdf_auto_delete: bool, pdf_debug: bool,
     specific_return: str, specific_return_column_date: str, specific_return_column_symbol: str, specific_return_column_value: str, specific_return_output_file_html: str, specific_return_output_file_csv: str, specific_return_auto_delete: bool,
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
@@ -239,6 +245,27 @@ def main(
             benchmark_ticker=quantstats_benchmark_ticker,
             auto_delete=quantstats_auto_delete,
         ))
+    
+    if pdf:
+        if not quantstats:
+            raise ValueError("PDF exporter require a quantstats exporter")
+        quantstats_exporter = exporters[-1]
+
+        if pdf_template.endswith(".sketch"):
+            from .template import SketchTemplateLoader
+            template = SketchTemplateLoader().load(pdf_template)
+        else:
+            raise ValueError(f"unsupported template: {pdf_template}")
+
+        from .export import PdfExporter
+        exporters.append(PdfExporter(
+            quantstats_exporter=quantstats_exporter,
+            template=template,
+            output_file=pdf_output_file,
+            auto_delete=pdf_auto_delete,
+            debug=pdf_debug,
+        ))
+
 
     if specific_return:
         from .export import SpecificReturnExporter
@@ -263,7 +290,7 @@ def main(
         rfr = pd.read_parquet(rfr_file)
         rfr = rfr.set_index(rfr_file_column_date)
     else:
-        rfr = pd.Series()
+        rfr = pd.Series(dtype="float64")
 
     from .backtest import Backtester
     Backtester(
