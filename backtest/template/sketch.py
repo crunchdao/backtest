@@ -94,7 +94,7 @@ class SketchTemplateLoader(TemplateLoader):
                     clip = None
 
         pages: typing.List[Page] = []
-        for layer in sketch["layers"]:
+        for layer in reversed(sketch["layers"]):
             layer["frame"]["x"] = 0
             layer["frame"]["y"] = 0
 
