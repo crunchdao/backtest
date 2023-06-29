@@ -49,7 +49,8 @@ class SketchTemplateLoader(TemplateLoader):
                     (
                         content,
                         font,
-                        color
+                        color,
+                        alignment
                     ) = self._extract_text(
                         layer
                     )
@@ -61,6 +62,7 @@ class SketchTemplateLoader(TemplateLoader):
                         content=content,
                         font=font,
                         color=color,
+                        alignment=alignment,
                     ))
 
                 case "bitmap":
@@ -181,7 +183,7 @@ class SketchTemplateLoader(TemplateLoader):
     def _extract_text(
         self,
         layer: dict,
-    ) -> Shape:
+    ):
         content = layer["attributedString"]["string"]
         content = content.replace("\uFB01", "fi")
         content = content.replace("\uFB02", "fl")
@@ -191,11 +193,15 @@ class SketchTemplateLoader(TemplateLoader):
 
         font = Font(
             family=layer["style"]["textStyle"]["encodedAttributes"]["MSAttributedStringFontAttribute"]["attributes"]["name"],
-            size=layer["style"]["textStyle"]["encodedAttributes"]["MSAttributedStringFontAttribute"]["attributes"]["size"]
+            size=layer["style"]["textStyle"]["encodedAttributes"]["MSAttributedStringFontAttribute"]["attributes"]["size"],
         )
 
         color = self._convert_color(
             layer["style"]["textStyle"]["encodedAttributes"]["MSAttributedStringColorAttribute"]
         )
 
-        return content, font, color
+        alignment = Alignment.LEFT
+        if layer["style"]["textStyle"]["encodedAttributes"].get("paragraphStyle", {}).get("alignment", None) == 1:
+            alignment = Alignment.RIGHT
+
+        return content, font, color, alignment

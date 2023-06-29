@@ -1,6 +1,7 @@
 import dataclasses
 import io
 import typing
+import enum
 
 Identifier = typing.Any
 NaturalIdentifier = str
@@ -90,12 +91,19 @@ class Font:
     size: int
 
 
+class Alignment(enum.Enum):
+
+    LEFT = 0
+    RIGHT = 1
+
+
 @dataclasses.dataclass
 class Text(Element):
 
     content: str
     font: Font
     color: Color
+    alignment: Alignment
 
 
 @dataclasses.dataclass

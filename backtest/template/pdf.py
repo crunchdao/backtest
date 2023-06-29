@@ -95,14 +95,21 @@ class PdfTemplateRenderer(TemplateRenderer):
     def _render_text(self, pdf: fpdf.FPDF, text: Text):
         font = text.font
         pdf.set_font(font.family, '', font.size)
-
-        pdf.set_xy(pdf.x - 3, pdf.y + 1)
         pdf.set_text_color(text.color.red, text.color.green, text.color.blue)
+
+        align: fpdf.Align
+        if text.alignment == Alignment.RIGHT:
+            align = fpdf.Align.R
+            pdf.set_xy(pdf.x + 3, pdf.y - 1)
+        else:
+            align = fpdf.Align.L
+            pdf.set_xy(pdf.x - 3, pdf.y)
 
         pdf.cell(
             text.position.width,
             text.position.height,
-            text.content
+            text.content,
+            align=align
         )
 
     def _render_shape(self, pdf: fpdf.FPDF, shape: Shape):
