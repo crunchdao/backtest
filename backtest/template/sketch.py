@@ -77,6 +77,7 @@ class SketchTemplateLoader(TemplateLoader):
                         natural_id=natural_id,
                         position=position,
                         bytes=bytes,
+                        alternative=natural_id
                     ))
 
             clip: Rectangle2 = None

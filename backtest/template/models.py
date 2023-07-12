@@ -110,6 +110,7 @@ class Text(Element):
 class Image(Element):
 
     bytes: io.BytesIO
+    alternative: str
 
 
 @dataclasses.dataclass
