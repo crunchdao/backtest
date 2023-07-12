@@ -65,10 +65,10 @@ class Template:
                 image = element
 
                 if isinstance(value, io.BytesIO):
-                    image.bytes = bytes
+                    image.bytes = value
                 elif isinstance(value, str):
                     bytes = io.BytesIO()
-                    with open(value) as fd:
+                    with open(value, "rb") as fd:
                         shutil.copyfileobj(fd, bytes)
 
                     image.bytes = bytes
