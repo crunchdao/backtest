@@ -35,15 +35,22 @@ class Template:
 
     def apply_re(self, variables: typing.Dict[str, typing.Callable[[str], typing.Any] | typing.Any]):
         for pattern, value in variables.items():
+            found = False
+
             for key, elements in self.slots.items():
                 match = re.search(f"^{pattern}$", key)
                 if match is None:
                     continue
     
+                found = True
+
                 if callable(value):
                     value = value(key, *match.groups())
                 
                 self._set(elements, value)
+            
+            if not found:
+                print(f"no element for pattern={pattern}")
 
     def set(self, key: NaturalIdentifier | Identifier | re.Pattern, value: typing.Callable[[str], typing.Any] | typing.Any):
         elements = self.slots.get(key)
