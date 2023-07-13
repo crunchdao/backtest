@@ -23,11 +23,8 @@ class Template:
         self.slots = collections.defaultdict(list)
         for page in document.pages:
             for element in page.elements:
-                if element.id in self.slots:
-                    self.slots[element.id].append(element)
-
-                if element.natural_id in self.slots:
-                    self.slots[element.natural_id].append(element)
+                self.slots[element.id].append(element)
+                self.slots[element.natural_id].append(element)
 
     def apply(self, variables: typing.Dict[NaturalIdentifier | Identifier, typing.Callable[[str], typing.Any] | typing.Any]):
         for key, value in variables.items():
