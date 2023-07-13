@@ -98,12 +98,27 @@ class Alignment(enum.Enum):
 
 
 @dataclasses.dataclass
+class Span:
+
+    start: int
+    length: int
+    content: str
+    font: typing.Optional[Font]
+    color: typing.Optional[Color]
+
+    @property
+    def end(self):
+        return self.start + self.length
+
+
+@dataclasses.dataclass
 class Text(Element):
 
     content: str
-    font: Font
     color: Color
+    font: Font
     alignment: Alignment
+    spans: typing.List[Span]
 
 
 @dataclasses.dataclass

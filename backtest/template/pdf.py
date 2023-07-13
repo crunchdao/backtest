@@ -1,6 +1,7 @@
 import io
 import os
 import typing
+import itertools
 
 import fpdf
 
@@ -93,24 +94,74 @@ class PdfTemplateRenderer(TemplateRenderer):
         )
 
     def _render_text(self, pdf: fpdf.FPDF, text: Text):
-        font = text.font
-        pdf.set_font(font.family, '', font.size)
-        pdf.set_text_color(text.color.red, text.color.green, text.color.blue)
-
         align: fpdf.Align
+        start_x: int
+        start_y: int
+
         if text.alignment == Alignment.RIGHT:
             align = fpdf.Align.R
-            pdf.set_xy(pdf.x + 3, pdf.y - 1)
+            start_x, start_y = pdf.x + 3, pdf.y - 1
         else:
             align = fpdf.Align.L
-            pdf.set_xy(pdf.x - 3, pdf.y)
+            start_x, start_y = pdf.x - 3, pdf.y
 
-        pdf.cell(
-            text.position.width,
-            text.position.height,
-            text.content,
-            align=align
-        )
+        font = text.font
+        pdf.set_font(font.family, '', font.size)
+        space_size = pdf.get_string_width(" ")
+
+        x, y = start_x, start_y
+
+        def find_span(start: int):
+            previous = None
+
+            for index, span in enumerate(text.spans):
+                if span.start > start:
+                    break
+
+                previous = span
+
+            return previous, index
+
+        for index, word in split_words(text.content):
+            span, span_index = find_span(index)
+
+            color = span.color or text.color
+            pdf.set_text_color(color.red, color.green, color.blue)
+
+            font = span.font or text.font
+            pdf.set_font(font.family, '', font.size)
+            
+            if self.debug:
+                if span_index % 2:
+                    pdf.set_text_color(255, 0, 0)
+                else:
+                    pdf.set_text_color(0, 255, 0)
+
+            if word[0] == "\n":
+                x = start_x
+                y += font.size * len(word)
+            elif word[0] == " ":
+                x += space_size * len(word)
+            else:
+                span_width = pdf.get_string_width(word)
+
+                next_x = x + span_width
+
+                width = next_x - start_x
+                if width > text.position.width + 2:
+                    x = start_x
+                    y += font.size
+                    next_x = start_x + span_width
+                
+                pdf.set_xy(x, y)
+                pdf.cell(
+                    span_width,
+                    font.size,
+                    word,
+                    align=align
+                )
+
+                x = next_x
 
     def _render_shape(self, pdf: fpdf.FPDF, shape: Shape):
         with pdf.new_path(shape.position.x, shape.position.y) as path:
@@ -150,3 +201,9 @@ class PdfTemplateRenderer(TemplateRenderer):
                 element.position.width,
                 element.position.height
             )
+
+
+def split_words(text: str):
+    for _, group in itertools.groupby(enumerate(text), lambda x: (x[1] == " ", x[1] == "\n")):
+        index, part = next(group)
+        yield index, part + "".join(x for _, x in group)

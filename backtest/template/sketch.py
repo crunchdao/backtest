@@ -50,7 +50,8 @@ class SketchTemplateLoader(TemplateLoader):
                         content,
                         font,
                         color,
-                        alignment
+                        alignment,
+                        spans,
                     ) = self._extract_text(
                         layer
                     )
@@ -63,6 +64,7 @@ class SketchTemplateLoader(TemplateLoader):
                         font=font,
                         color=color,
                         alignment=alignment,
+                        spans=spans
                     ))
 
                 case "bitmap":
@@ -103,11 +105,12 @@ class SketchTemplateLoader(TemplateLoader):
 
             elements = []
             find(layer, Vector2.zero(), None)
-
-            pages.append(Page(
-                size=self._get_frame_wh(layer),
-                elements=elements
-            ))
+           
+            if len(elements) > 1:
+                pages.append(Page(
+                    size=self._get_frame_wh(layer),
+                    elements=elements
+                ))
 
         return pages
 
@@ -181,16 +184,41 @@ class SketchTemplateLoader(TemplateLoader):
 
         return points, color
 
+    REPLACE_TABLE = {
+        "\uFB01": "fi",
+        "\uFB02": "fl",
+        "\u2019": "'",
+        "\t": " ",
+    }
+
+    def _sanitize(self, input: str):
+        if input is None:
+            return None
+        
+        added = 0
+        output = ""
+
+        for character in input:
+            replacement = self.REPLACE_TABLE.get(character)
+
+            if replacement is None:
+                output += character
+                continue
+
+            length = len(replacement)
+            if length > 1:
+                added += length - 1
+            
+            output += replacement
+        
+        return output, added
+
     def _extract_text(
         self,
         layer: dict,
     ):
-        content = layer["attributedString"]["string"]
-        content = content.replace("\uFB01", "fi")
-        content = content.replace("\uFB02", "fl")
-        content = content.replace("\t", " ")
-        content = content.replace("\n", " ")
-        content = content.replace("\u2019", "'")
+        raw_string = layer["attributedString"]["string"]
+        content, _ = self._sanitize(raw_string)
 
         font = Font(
             family=layer["style"]["textStyle"]["encodedAttributes"]["MSAttributedStringFontAttribute"]["attributes"]["name"],
@@ -205,4 +233,52 @@ class SketchTemplateLoader(TemplateLoader):
         if layer["style"]["textStyle"]["encodedAttributes"].get("paragraphStyle", {}).get("alignment", None) == 1:
             alignment = Alignment.RIGHT
 
-        return content, font, color, alignment
+        spans = self._extract_spans(layer, raw_string)
+
+        content_length = len(content)
+        span_length_sum = sum(span.length for span in spans)
+        if content_length != span_length_sum:
+            raise ValueError(f"spans are not same length as content: {content_length} != {span_length_sum}")
+
+        return content, font, color, alignment, spans
+
+    def _extract_span(
+        self,
+        attributes_item: dict,
+        text_string: str,
+    ) -> Span:
+        location = attributes_item["location"]
+        length = attributes_item["length"]
+
+        raw_string = text_string[location:location + length]
+        content, added = self._sanitize(raw_string)
+
+        font = Font(
+            family=attributes_item["attributes"]["MSAttributedStringFontAttribute"]["attributes"]["name"],
+            size=attributes_item["attributes"]["MSAttributedStringFontAttribute"]["attributes"]["size"],
+        )
+
+        color = self._convert_color(
+            attributes_item["attributes"]["MSAttributedStringColorAttribute"]
+        )
+
+        return Span(
+            start=location,
+            length=length + added,
+            content=content,
+            font=font,
+            color=color,
+        )
+
+    def _extract_spans(
+        self,
+        layer: dict,
+        text_string: str,
+    ):
+        attributes = layer["attributedString"]["attributes"]
+
+        return [
+            self._extract_span(item, text_string)
+            for item in attributes
+        ]
+
