@@ -210,18 +210,12 @@ class PdfTemplateRenderer(TemplateRenderer):
         return lines
 
     def _render_text(self, pdf: fpdf.FPDF, text: Text):
-        align: fpdf.Align
-        start_x: int
-        start_y: int
-
-        if text.alignment == Alignment.RIGHT:
-            align = fpdf.Align.R
-            start_x = pdf.x + 3
-            start_y = pdf.y - 1
-        else:
-            align = fpdf.Align.L
+        if right := (text.alignment == Alignment.RIGHT):
             start_x = pdf.x - 3
-            start_y = pdf.y
+            start_y = pdf.y + 1
+        else:
+            start_x = pdf.x - 3
+            start_y = pdf.y + 1
         
         lines = self._compute_lines(pdf, text)
 
@@ -229,20 +223,28 @@ class PdfTemplateRenderer(TemplateRenderer):
         free_space = max(0, text.position.height - height_sum)
         extra_space = free_space / (len(lines) + 1)
         
+        debug = print if text.content == "16.17%" else lambda *x: ...
+
         for index, line in enumerate(lines, 1):
+            if right:
+                last_x = max(word.position.x + word.position.width for word in line.words) if len(line.words) else 0
+                right_offset = text.position.width - last_x
+
             for word in line.words:
                 pdf.set_text_color(word.color.red, word.color.green, word.color.blue)
                 pdf.set_font(word.font.family, '', word.font.size)
-                
+
                 x = start_x + word.position.x
                 y = start_y + word.position.y + (index * extra_space)
+
+                if right:
+                    x += right_offset
 
                 pdf.set_xy(x, y)
                 pdf.cell(
                     word.position.width,
                     word.position.height,
                     word.content,
-                    align=align
                 )
 
     def _render_shape(self, pdf: fpdf.FPDF, shape: Shape):
