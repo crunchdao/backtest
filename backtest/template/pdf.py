@@ -9,6 +9,22 @@ from .models import *
 from .template import *
 
 
+@dataclasses.dataclass()
+class Word:
+
+    position: Rectangle2
+    content: str
+    font: Font
+    color: Color
+
+
+@dataclasses.dataclass()
+class Line:
+
+    size: Vector2
+    words: typing.List[Word]
+
+
 class PdfTemplateRenderer(TemplateRenderer):
 
     DEFAULT_PRIORITIES = {
@@ -92,24 +108,36 @@ class PdfTemplateRenderer(TemplateRenderer):
             image.position.x, image.position.y,
             image.position.width, image.position.height
         )
+    
+    def _compute_lines(self, pdf: fpdf.FPDF, text: Text) -> typing.List[Line]:
+        lines = []
+        words = []
 
-    def _render_text(self, pdf: fpdf.FPDF, text: Text):
-        align: fpdf.Align
-        start_x: int
-        start_y: int
+        def commit_line(min_height: float):
+            nonlocal words, lines
 
-        if text.alignment == Alignment.RIGHT:
-            align = fpdf.Align.R
-            start_x, start_y = pdf.x + 3, pdf.y - 1
-        else:
-            align = fpdf.Align.L
-            start_x, start_y = pdf.x - 3, pdf.y
+            width = 0
+            height = min_height
+
+            if len(words):
+                width = sum(word.position.width for word in words)
+                height = max(word.position.height for word in words)
+
+            lines.append(Line(
+                size=Vector2(
+                    width,
+                    height
+                ),
+                words=words
+            ))
+            
+            words = []
 
         font = text.font
         pdf.set_font(font.family, '', font.size)
         space_size = pdf.get_string_width(" ")
 
-        x, y = start_x, start_y
+        x, y = 0, 0
 
         def find_span(start: int):
             previous = None
@@ -122,12 +150,12 @@ class PdfTemplateRenderer(TemplateRenderer):
 
             return previous, index
 
+        span_height = 0
+
         for index, word in split_words(text.content):
             span, span_index = find_span(index)
 
             color = span.color or text.color
-            pdf.set_text_color(color.red, color.green, color.blue)
-
             font = span.font or text.font
             pdf.set_font(font.family, '', font.size)
             
@@ -136,32 +164,86 @@ class PdfTemplateRenderer(TemplateRenderer):
                     pdf.set_text_color(255, 0, 0)
                 else:
                     pdf.set_text_color(0, 255, 0)
+                
+            span_height = font.size
 
             if word[0] == "\n":
-                x = start_x
-                y += font.size * len(word)
+                line_count = len(word)
+
+                for _ in range(line_count):
+                    commit_line(span_height)
+
+                x = 0
+                y += font.size * line_count
             elif word[0] == " ":
                 x += space_size * len(word)
+                span_width = pdf.get_string_width(word)
             else:
                 span_width = pdf.get_string_width(word)
 
                 next_x = x + span_width
 
-                width = next_x - start_x
+                width = next_x
+                height = span_height
+
                 if width > text.position.width + 2:
-                    x = start_x
-                    y += font.size
-                    next_x = start_x + span_width
+                    commit_line(span_height)
+
+                    x = 0
+                    y += height
+                    next_x = span_width
                 
-                pdf.set_xy(x, y)
-                pdf.cell(
-                    span_width,
-                    font.size,
-                    word,
-                    align=align
-                )
+                words.append(Word(
+                    position=Rectangle2(
+                        x, y,
+                        span_width, span_height
+                    ),
+                    content=word,
+                    font=font,
+                    color=color
+                ))
 
                 x = next_x
+
+        commit_line(span_height)
+        
+        return lines
+
+    def _render_text(self, pdf: fpdf.FPDF, text: Text):
+        align: fpdf.Align
+        start_x: int
+        start_y: int
+
+        if text.alignment == Alignment.RIGHT:
+            align = fpdf.Align.R
+            start_x = pdf.x + 3
+            start_y = pdf.y - 1
+        else:
+            align = fpdf.Align.L
+            start_x = pdf.x - 3
+            start_y = pdf.y
+        
+        lines = self._compute_lines(pdf, text)
+
+        height_sum = sum(line.size.y for line in lines)
+        free_space = max(0, text.position.height - height_sum)
+        extra_space = free_space / (len(lines) + 1)
+        
+        for index, line in enumerate(lines, 1):
+            for word in line.words:
+                pdf.set_text_color(word.color.red, word.color.green, word.color.blue)
+                pdf.set_font(word.font.family, '', word.font.size)
+                
+                x = start_x + word.position.x
+                y = start_y + word.position.y + (index * extra_space)
+
+                pdf.set_xy(x, y)
+                pdf.cell(
+                    word.position.width,
+                    word.position.height,
+                    word.content,
+                    align=align
+                )
 
     def _render_shape(self, pdf: fpdf.FPDF, shape: Shape):
         with pdf.new_path(shape.position.x, shape.position.y) as path:
