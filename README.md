@@ -124,6 +124,8 @@ Generate a tearsheet from a custom template.
 | `--pdf-output-file` | `<file>` | `report.pdf` | `path` | Specify the output file. |
 | `--pdf-auto-delete` | | `false` | | Automatically delete the previous report file if present. |
 | `--pdf-debug` | | `false` | | Enable the pdf renderer's debugging tools. |
+| `--pdf-variable` | `[<key> <value>]` | `[]` | `string` `string` | Add a custom variable. |
+| `--pdf-user-script` | `[<file>]` | `[]` | `path` | Add a user script. |
 
 ##### Specific Return
 
