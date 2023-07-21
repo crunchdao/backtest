@@ -1,56 +1,99 @@
 import abc
 import datetime
 import os
+import typing
+import quantstats
+import slugify
 
 from .base import BaseExporter
 from .quants import QuantStatsExporter
+from .dump import DumpExporter
 from ..template import Template, PdfTemplateRenderer
+
+
+_EMPTY_DICT = dict()
+
 
 class PdfExporter(BaseExporter):
 
     def __init__(
         self,
-        quantstats_exporter: QuantStatsExporter,
+        quantstats_exporter: typing.Optional[QuantStatsExporter],
+        dump_exporter: typing.Optional[DumpExporter],
         template: Template,
         output_file="report.pdf",
         auto_delete=False,
         debug=False,
+        variables: typing.Dict[str, str] = _EMPTY_DICT,
+        user_scripts: "module" = list(),
     ):
         self.quantstats_exporter = quantstats_exporter
+        self.dump_exporter = dump_exporter
         self.output_file = output_file
         self.auto_delete = auto_delete
         self.template = template
+        self.variables = variables
+        self.user_scripts = user_scripts
 
         self.renderer = PdfTemplateRenderer(
             debug=debug,
         )
-        
+
     @abc.abstractmethod
     def initialize(self) -> None:
         if os.path.exists(self.output_file):
             can_delete = self.auto_delete
             if not can_delete:
-                can_delete = input(f"{self.output_file}: delete file? [y/N]").lower() == 'y'
-            
+                can_delete = input(
+                    f"{self.output_file}: delete file? [y/N]").lower() == 'y'
+
             if can_delete:
                 os.remove(self.output_file)
 
     @abc.abstractmethod
     def finalize(self) -> None:
-        returns = self.quantstats_exporter.returns
-        benchmark = self.quantstats_exporter.benchmark
-        # TODO add graphs and meaningful informations
-
-        today = datetime.date.today().isoformat()
-        strategy_name = "My Strategy"
+        df_returns = self.quantstats_exporter.returns if self.quantstats_exporter else None
+        df_benchmark = self.quantstats_exporter.benchmark if self.quantstats_exporter else None
+        df_dump = self.dump_exporter.dataframe.reset_index().sort_values(by='date') if self.dump_exporter else None
+        
+        df_metrics = None
+        if df_returns is not None:
+            df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False)
+            df_metrics.index = df_metrics.index.map(slugify.slugify)
+            df_metrics.columns = df_metrics.columns.map(slugify.slugify)
 
         self.template.apply({
-            "2023-06-13": today,
-            "2023-06-02": today,
-            "2023-05-02": today,
-            "Systematic Long-Shor": strategy_name,
-            "Featuring Crypto Dir": strategy_name,
+            "$date": datetime.date.today().isoformat(),
         })
+
+        if df_returns is not None:
+            self.template.apply({
+                "$qs.montly-returns": lambda _: quantstats.plots.monthly_returns(df_returns, show=False, cbar=False),
+                "$qs.cumulative-returns": lambda _: quantstats.plots.returns(df_returns, df_benchmark, show=False, subtitle=False),
+                "$qs.cumulative-returns-volatility": lambda _: quantstats.plots.returns(df_returns, df_benchmark, match_volatility=True, show=False),
+                "$qs.eoy-returns": lambda _: quantstats.plots.yearly_returns(df_returns, df_benchmark, show=False),
+                "$qs.underwater-plot": lambda _: quantstats.plots.drawdown(df_returns, show=False),
+            })
+
+            if df_benchmark is not None:
+                self.template.apply_re({
+                    r"\$qs\.metric\.(strategy|benchmark)\.(.+)": lambda _, type, metric: df_metrics.loc[metric, type],
+                })
+            else:
+                self.template.apply_re({
+                    r"\$qs\.metric\.strategy\.(.+)": lambda _, metric: df_metrics.loc[metric, "strategy"],
+                })
+
+        self.template.apply(self.variables)
+
+        for user_script in self.user_scripts:
+            get_template_values = getattr(user_script, "get_template_values", None)
+            if not callable(get_template_values):
+                continue
+
+            values, values_re = get_template_values(**locals())
+            self.template.apply(values)
+            self.template.apply_re(values_re)
 
         with open(self.output_file, "wb") as fd:
             self.renderer.render(self.template, fd)

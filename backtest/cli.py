@@ -1,9 +1,13 @@
 import datetime
+import logging
 import sys
-import pandas as pd
+import typing
+import os
+import importlib
 
 import click
 import dotenv
+import pandas
 
 from .utils import is_number
 
@@ -53,6 +57,8 @@ dotenv.load_dotenv()
 @click.option('--pdf-output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
 @click.option('--pdf-auto-delete', is_flag=True, help="Should aa conflicting file be automatically deleted?")
 @click.option('--pdf-debug', is_flag=True, help="Enable renderer debugging.")
+@click.option('--pdf-variable', "pdf_variables", nargs=2, multiple=True, type=(str, str), help="Specify custom variables.")
+@click.option('--pdf-user-script', "pdf_user_script_paths", multiple=True, type=str, help="Specify custom scripts.")
 @click.option('--specific-return', type=str, help="Enable the specific return exporter by proving a .parquet.")
 @click.option('--specific-return-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--specific-return-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
@@ -87,7 +93,7 @@ def main(
     dump: str, dump_output_file: str, dump_auto_delete: bool,
     influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
-    pdf: bool, pdf_template: str, pdf_output_file: str, pdf_auto_delete: bool, pdf_debug: bool,
+    pdf: bool, pdf_template: str, pdf_output_file: str, pdf_auto_delete: bool, pdf_debug: bool, pdf_variables: typing.Tuple[typing.Tuple[str, str]], pdf_user_script_paths: str,
     specific_return: str, specific_return_column_date: str, specific_return_column_symbol: str, specific_return_column_value: str, specific_return_output_file_html: str, specific_return_output_file_csv: str, specific_return_auto_delete: bool,
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
@@ -95,6 +101,8 @@ def main(
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
     rfr_file: str, rfr_file_column_date: str
 ):
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
+
     now = datetime.date.today()
 
     quantity_in_decimal = quantity_mode == "percent"
@@ -245,27 +253,6 @@ def main(
             benchmark_ticker=quantstats_benchmark_ticker,
             auto_delete=quantstats_auto_delete,
         ))
-    
-    if pdf:
-        if not quantstats:
-            raise ValueError("PDF exporter require a quantstats exporter")
-        quantstats_exporter = exporters[-1]
-
-        if pdf_template.endswith(".sketch"):
-            from .template import SketchTemplateLoader
-            template = SketchTemplateLoader().load(pdf_template)
-        else:
-            raise ValueError(f"unsupported template: {pdf_template}")
-
-        from .export import PdfExporter
-        exporters.append(PdfExporter(
-            quantstats_exporter=quantstats_exporter,
-            template=template,
-            output_file=pdf_output_file,
-            auto_delete=pdf_auto_delete,
-            debug=pdf_debug,
-        ))
-
 
     if specific_return:
         from .export import SpecificReturnExporter
@@ -278,6 +265,50 @@ def main(
             csv_output_file=specific_return_output_file_csv,
             auto_delete=specific_return_auto_delete,
         ))
+    
+    if pdf:
+        from .export import QuantStatsExporter, DumpExporter
+
+        quantstats_exporter = next(filter(lambda x: isinstance(x, QuantStatsExporter), exporters), None)
+        dump_exporter = next(filter(lambda x: isinstance(x, DumpExporter), exporters), None)
+
+        if pdf_template.endswith(".sketch"):
+            from .template import SketchTemplateLoader
+            template = SketchTemplateLoader().load(pdf_template)
+        else:
+            raise ValueError(f"unsupported template: {pdf_template}")
+        
+        user_scripts = []
+        for index, path in enumerate(pdf_user_script_paths or list()):
+            directory = os.path.dirname(path)
+
+            spec = importlib.util.spec_from_file_location(
+                f"pdf_user_code_{index}",
+                path
+            )
+
+            print(path)
+
+            print(spec)
+
+            module = importlib.util.module_from_spec(spec)
+
+            sys.path.insert(0, directory)
+            spec.loader.exec_module(module)
+
+            user_scripts.append(module)
+
+        from .export import PdfExporter
+        exporters.append(PdfExporter(
+            quantstats_exporter=quantstats_exporter,
+            dump_exporter=dump_exporter,
+            template=template,
+            output_file=pdf_output_file,
+            auto_delete=pdf_auto_delete,
+            debug=pdf_debug,
+            variables=dict(pdf_variables or tuple()),
+            user_scripts=user_scripts or list()
+        ))
 
     if not len(exporters):
         from .export import ConsoleExporter
@@ -287,10 +318,10 @@ def main(
             f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
     if rfr_file:
-        rfr = pd.read_parquet(rfr_file)
+        rfr = pandas.read_parquet(rfr_file)
         rfr = rfr.set_index(rfr_file_column_date)
     else:
-        rfr = pd.Series(dtype="float64")
+        rfr = pandas.Series(dtype="float64")
 
     from .backtest import Backtester
     Backtester(

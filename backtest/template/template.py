@@ -2,6 +2,8 @@ import io
 import shutil
 import re
 import collections
+import matplotlib.figure
+import sys
 
 from .models import *
 
@@ -25,6 +27,9 @@ class Template:
             for element in page.elements:
                 self.slots[element.id].append(element)
                 self.slots[element.natural_id].append(element)
+    
+    def log(self, message: str):
+        print(f"template: {message}", file=sys.stderr)
 
     def apply(self, variables: typing.Dict[NaturalIdentifier | Identifier, typing.Callable[[str], typing.Any] | typing.Any]):
         for key, value in variables.items():
@@ -44,23 +49,25 @@ class Template:
                 if callable(value):
                     value = value(key, *match.groups())
                 
-                self._set(elements, value)
+                self._set(elements, value, key)
             
             if not found:
-                print(f"no element for pattern={pattern}")
+                self.log(f"no element for pattern={pattern}")
 
     def set(self, key: NaturalIdentifier | Identifier | re.Pattern, value: typing.Callable[[str], typing.Any] | typing.Any):
         elements = self.slots.get(key)
         if elements is None:
-            print(f"no element for key={key}")
+            self.log(f"no element for key={key}")
             return
     
         if callable(value):
             value = value(key)
 
-        return self._set(elements, value)
+        return self._set(elements, value, key)
 
-    def _set(self, elements: typing.List[Element], value: typing.Any):
+    def _set(self, elements: typing.List[Element], value: typing.Any, original_key=None):
+        self.log(f"apply len(elements)={len(elements)} key='{original_key}' value='{value}'")
+
         for element in elements:
             if isinstance(element, Text):
                 text = element
@@ -70,6 +77,18 @@ class Template:
 
                 if isinstance(value, io.BytesIO):
                     image.bytes = value
+                elif isinstance(value, matplotlib.figure.Figure):
+                    figure: matplotlib.figure.Figure  = value
+                    figure.suptitle("")
+                    figure.gca().set_ylabel("")
+                    figure.gca().set_xlabel("")
+                    figure.gca().set_title("")
+
+                    bytes = io.BytesIO()
+                    figure.savefig(bytes, bbox_inches="tight")
+                    bytes.seek(0)
+
+                    image.bytes = bytes
                 elif isinstance(value, str):
                     bytes = io.BytesIO()
                     with open(value, "rb") as fd:
@@ -77,7 +96,7 @@ class Template:
 
                     image.bytes = bytes
                 else:
-                    raise ValueError(f"unsupported for image: {value}")
+                    raise ValueError(f"unsupported for image: {type(value)} {value}")
 
 
 class TemplateLoader:
