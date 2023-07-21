@@ -116,6 +116,12 @@ class SketchTemplateLoader(TemplateLoader):
 
     def load(self, path: str) -> Template:
         with zipfile.ZipFile(path) as zipfd:
+            def open_or_none(file_path: str):
+                try:
+                    return zipfd.open(file_path)
+                except KeyError as error:
+                    return None
+
             with zipfd.open('document.json') as fd:
                 document_meta = json.load(fd)
 
@@ -132,6 +138,26 @@ class SketchTemplateLoader(TemplateLoader):
             document = Document(
                 pages=pages
             )
+
+            loaded_fonts = dict()
+            for font in document.fonts:
+                file_name = font.file_name
+
+                current = loaded_fonts.get(file_name)
+                if current == False:
+                    continue
+                elif isinstance(current, bytes):
+                    font.bytes = current
+                    continue
+
+                fd = open_or_none(file_name) or open_or_none(f"fonts/{file_name}")
+                if fd:
+                    with fd:
+                        current = fd.read()
+                        font.bytes = current
+                        loaded_fonts[file_name] = current
+                else:
+                    loaded_fonts[file_name] = False
 
             return Template(
                 path,
@@ -281,4 +307,3 @@ class SketchTemplateLoader(TemplateLoader):
             self._extract_span(item, text_string)
             for item in attributes
         ]
-

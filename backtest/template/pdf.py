@@ -58,13 +58,15 @@ class PdfTemplateRenderer(TemplateRenderer):
         families = set()
 
         for font in template.document.fonts:
-            file_name = f"{font.family}.ttf"
+            file_name = font.file_name
 
             if font.family.lower() in pdf.fonts:
                 continue
 
             if os.path.exists(file_name):
                 pdf.add_font(font.family, "", file_name)
+            elif font.bytes:
+                self._add_font_from_bytes(pdf, font)
             else:
                 font.family = "helvetica"
 
@@ -152,7 +154,7 @@ class PdfTemplateRenderer(TemplateRenderer):
 
         span_height = 0
 
-        for index, word in split_words(text.content):
+        for index, word in _split_words(text.content):
             span, span_index = find_span(index)
 
             color = span.color or text.color
@@ -223,8 +225,6 @@ class PdfTemplateRenderer(TemplateRenderer):
         free_space = max(0, text.position.height - height_sum)
         extra_space = free_space / (len(lines) + 1)
         
-        debug = print if text.content == "16.17%" else lambda *x: ...
-
         for index, line in enumerate(lines, 1):
             if right:
                 last_x = max(word.position.x + word.position.width for word in line.words) if len(line.words) else 0
@@ -286,8 +286,88 @@ class PdfTemplateRenderer(TemplateRenderer):
                 element.position.height
             )
 
+    def _add_font_from_bytes(self, pdf: fpdf.FPDF, font: Font):
+        """
+        Partially extracted from official fpdf.FPDF.add_font function.
+        But this one only keep the important part and use a io buffer instead of a filename.
+        """
+        font_ = font
 
-def split_words(text: str):
+        import warnings
+        from fontTools import ttLib
+        from fpdf.fpdf import SubsetMap
+        from fpdf.enums import FontDescriptorFlags, TextEmphasis
+        from fpdf.output import PDFFontDescriptor
+
+        fontkey = font.family.lower()
+        if fontkey in pdf.fonts or fontkey in pdf.core_fonts:
+            warnings.warn(f"Core font or font already added '{fontkey}': doing nothing")
+            return
+    
+        font = ttLib.TTFont(io.BytesIO(font.bytes), fontNumber=0, lazy=True)
+
+        scale = 1000 / font["head"].unitsPerEm
+        default_width = round(scale * font["hmtx"].metrics[".notdef"][0])
+
+        try:
+            cap_height = font["OS/2"].sCapHeight
+        except AttributeError:
+            cap_height = font["hhea"].ascent
+
+        flags = FontDescriptorFlags.SYMBOLIC
+        if font["post"].isFixedPitch:
+            flags |= FontDescriptorFlags.FIXED_PITCH
+        if font["post"].italicAngle != 0:
+            flags |= FontDescriptorFlags.ITALIC
+        if font["OS/2"].usWeightClass >= 600:
+            flags |= FontDescriptorFlags.FORCE_BOLD
+
+        desc = PDFFontDescriptor(
+            ascent=round(font["hhea"].ascent * scale),
+            descent=round(font["hhea"].descent * scale),
+            cap_height=round(cap_height * scale),
+            flags=flags,
+            font_b_box=(
+                f"[{font['head'].xMin * scale:.0f} {font['head'].yMin * scale:.0f}"
+                f" {font['head'].xMax * scale:.0f} {font['head'].yMax * scale:.0f}]"
+            ),
+            italic_angle=int(font["post"].italicAngle),
+            stem_v=round(50 + int(pow((font["OS/2"].usWeightClass / 65), 2))),
+            missing_width=default_width,
+        )
+
+        char_widths = collections.defaultdict(lambda: default_width)
+        font_cmap = tuple(font.getBestCmap().keys())
+        for char in font_cmap:
+            glyph = font.getBestCmap()[char]
+            w = font["hmtx"].metrics[glyph][0]
+            if w == 65535:
+                w = 0
+
+            char_widths[char] = round(scale * w + 0.001)
+
+        sbarr = "\x00 "
+        if pdf.str_alias_nb_pages:
+            sbarr += "0123456789"
+            sbarr += pdf.str_alias_nb_pages
+
+        pdf.fonts[fontkey] = {
+            "i": len(pdf.fonts) + 1,
+            "type": "TTF",
+            "name": re.sub("[ ()]", "", font["name"].getBestFullName()),
+            "desc": desc,
+            "up": round(font["post"].underlinePosition * scale),
+            "ut": round(font["post"].underlineThickness * scale),
+            "cw": char_widths,
+            "ttffile": io.BytesIO(font_.bytes),
+            "fontkey": fontkey,
+            "emphasis": TextEmphasis.coerce(""),
+            "subset": SubsetMap(map(ord, sbarr)),
+            "cmap": font_cmap,
+        }
+
+
+def _split_words(text: str):
     for _, group in itertools.groupby(enumerate(text), lambda x: (x[1] == " ", x[1] == "\n")):
         index, part = next(group)
         yield index, part + "".join(x for _, x in group)

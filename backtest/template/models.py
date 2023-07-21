@@ -2,6 +2,7 @@ import dataclasses
 import io
 import typing
 import enum
+import cached_property
 
 Identifier = typing.Any
 NaturalIdentifier = str
@@ -89,6 +90,11 @@ class Font:
 
     family: str
     size: int
+    bytes: typing.Optional[bytes] = None
+
+    @cached_property.cached_property
+    def file_name(self):
+        return f"{self.family}.ttf"
 
 
 class Alignment(enum.Enum):
@@ -141,10 +147,12 @@ class Document:
     pages: typing.List[Page]
 
     @property
-    def fonts(self) -> typing.List[Font]:
-        return list(
-            element.font
-            for page in self.pages
-            for element in page.elements
-            if isinstance(element, Text)
-        )
+    def fonts(self) -> typing.Iterator[Font]:
+        for page in self.pages:
+            for element in page.elements:
+                if isinstance(element, Text):
+                    yield element.font
+
+                    for span in element.spans:
+                        if span.font:
+                            yield span.font
