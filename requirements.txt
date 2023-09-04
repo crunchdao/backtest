@@ -12,3 +12,4 @@ yfinance
 pytest
 python-dotenv
 colorama
+ipython==8.15.0
