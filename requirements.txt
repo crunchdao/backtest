@@ -5,10 +5,11 @@ numpy
 pandas
 py_expression_eval
 pyarrow
-quantstats==0.0.59
+quantstats==0.0.62
 requests
 tqdm
 yfinance
 pytest
 python-dotenv
 colorama
+ipython==8.15.0
