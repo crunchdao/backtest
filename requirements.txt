@@ -13,6 +13,6 @@ python-dotenv >=0.20, <1.0.0
 colorama >=0.4.4, <0.4.6
 ipython==8.15.0
 seaborn>=0.11.0, <0.12.0
-slugify
+python-slugify
 cached-property
-fpdf
+fpdf2==2.7.4
