@@ -12,3 +12,4 @@ yfinance
 pytest
 python-dotenv
 colorama
+slugify
