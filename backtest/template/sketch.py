@@ -25,62 +25,61 @@ class SketchTemplateLoader(TemplateLoader):
             )
 
             class_ = layer["_class"]
-            match class_:
-                case "shapePath":
-                    (
-                        points,
-                        color
-                    ) = self._extract_shape_points(
-                        layer,
-                        absolute,
-                        size
-                    )
+            if class_ == "shapePath":
+                (
+                    points,
+                    color
+                ) = self._extract_shape_points(
+                    layer,
+                    absolute,
+                    size
+                )
 
-                    elements.append(Shape(
-                        id=id,
-                        natural_id=natural_id,
-                        position=position,
-                        points=points,
-                        color=color,
-                        clip=clip,
-                    ))
+                elements.append(Shape(
+                    id=id,
+                    natural_id=natural_id,
+                    position=position,
+                    points=points,
+                    color=color,
+                    clip=clip,
+                ))
 
-                case "text":
-                    (
-                        content,
-                        font,
-                        color,
-                        alignment,
-                        spans,
-                    ) = self._extract_text(
-                        layer
-                    )
+            elif class_ == "text":
+                (
+                    content,
+                    font,
+                    color,
+                    alignment,
+                    spans,
+                ) = self._extract_text(
+                    layer
+                )
 
-                    elements.append(Text(
-                        id=id,
-                        natural_id=natural_id,
-                        position=position,
-                        content=content,
-                        font=font,
-                        color=color,
-                        alignment=alignment,
-                        spans=spans
-                    ))
+                elements.append(Text(
+                    id=id,
+                    natural_id=natural_id,
+                    position=position,
+                    content=content,
+                    font=font,
+                    color=color,
+                    alignment=alignment,
+                    spans=spans
+                ))
 
-                case "bitmap":
-                    path = layer["image"]["_ref"]
+            elif class_ == "bitmap":
+                path = layer["image"]["_ref"]
 
-                    bytes = io.BytesIO()
-                    with zipfd.open(path) as fd:
-                        shutil.copyfileobj(fd, bytes)
+                bytes = io.BytesIO()
+                with zipfd.open(path) as fd:
+                    shutil.copyfileobj(fd, bytes)
 
-                    elements.append(Image(
-                        id=id,
-                        natural_id=natural_id,
-                        position=position,
-                        bytes=bytes,
-                        alternative=natural_id
-                    ))
+                elements.append(Image(
+                    id=id,
+                    natural_id=natural_id,
+                    position=position,
+                    bytes=bytes,
+                    alternative=natural_id
+                ))
 
             clip: Rectangle2 = None
             for sub_layer in layer.get("layers", []):
