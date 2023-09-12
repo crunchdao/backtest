@@ -8,9 +8,9 @@ with open('requirements.txt') as fd:
 setup(
     name='crunchdao-backtest',
     version='1.0.1',
-    description='Simple backtester',
-    author='Enzo CACERES',
-    author_email='caceresenzo1502@gmail.com',
+    description='CrunchDAO backtester',
+    author='Enzo Caceres, CrunchDAO',
+    author_email='enzo.caceres@crunchdao.com',
     packages=find_packages(),
     install_requires=requirements,
 )
