@@ -38,7 +38,7 @@ class Template:
         for key, value in variables.items():
             self.set(key, value)
 
-    def apply_re(self, variables: typing.Dict[typing.Union[str, typing.Callable[[str], typing.Any], typing.Any]]):
+    def apply_re(self, variables: typing.Dict[str, typing.Union[typing.Callable[[str], typing.Any], typing.Any]]):
         for pattern, value in variables.items():
             found = False
 
