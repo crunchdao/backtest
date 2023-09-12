@@ -12,7 +12,10 @@ class Template:
 
     name: str
     document: Document
-    slots: typing.Dict[NaturalIdentifier | Identifier, typing.List[Element]]
+    slots: typing.Dict[
+        typing.Union[NaturalIdentifier, Identifier],
+        typing.List[Element]
+    ]
 
     def __init__(
         self,
@@ -27,15 +30,15 @@ class Template:
             for element in page.elements:
                 self.slots[element.id].append(element)
                 self.slots[element.natural_id].append(element)
-    
+
     def log(self, message: str):
         print(f"template: {message}", file=sys.stderr)
 
-    def apply(self, variables: typing.Dict[NaturalIdentifier | Identifier, typing.Callable[[str], typing.Any] | typing.Any]):
+    def apply(self, variables: typing.Dict[typing.Union[NaturalIdentifier, Identifier], typing.Union[typing.Callable[[str], typing.Any], typing.Any]]):
         for key, value in variables.items():
             self.set(key, value)
 
-    def apply_re(self, variables: typing.Dict[str, typing.Callable[[str], typing.Any] | typing.Any]):
+    def apply_re(self, variables: typing.Dict[typing.Union[str, typing.Callable[[str], typing.Any], typing.Any]]):
         for pattern, value in variables.items():
             found = False
 
@@ -43,30 +46,31 @@ class Template:
                 match = re.search(f"^{pattern}$", key)
                 if match is None:
                     continue
-    
+
                 found = True
 
                 if callable(value):
                     value = value(key, *match.groups())
-                
+
                 self._set(elements, value, key)
-            
+
             if not found:
                 self.log(f"no element for pattern={pattern}")
 
-    def set(self, key: NaturalIdentifier | Identifier | re.Pattern, value: typing.Callable[[str], typing.Any] | typing.Any):
+    def set(self, key: typing.Union[NaturalIdentifier, Identifier, re.Pattern], value: typing.Union[typing.Callable[[str], typing.Any], typing.Any]):
         elements = self.slots.get(key)
         if elements is None:
             self.log(f"no element for key={key}")
             return
-    
+
         if callable(value):
             value = value(key)
 
         return self._set(elements, value, key)
 
     def _set(self, elements: typing.List[Element], value: typing.Any, original_key=None):
-        self.log(f"apply len(elements)={len(elements)} key='{original_key}' value='{value}'")
+        self.log(
+            f"apply len(elements)={len(elements)} key='{original_key}' value='{value}'")
 
         for element in elements:
             if isinstance(element, Text):
@@ -78,7 +82,7 @@ class Template:
                 if isinstance(value, io.BytesIO):
                     image.bytes = value
                 elif isinstance(value, matplotlib.figure.Figure):
-                    figure: matplotlib.figure.Figure  = value
+                    figure: matplotlib.figure.Figure = value
                     figure.suptitle("")
                     figure.gca().set_ylabel("")
                     figure.gca().set_xlabel("")
@@ -96,7 +100,8 @@ class Template:
 
                     image.bytes = bytes
                 else:
-                    raise ValueError(f"unsupported for image: {type(value)} {value}")
+                    raise ValueError(
+                        f"unsupported for image: {type(value)} {value}")
 
 
 class TemplateLoader:

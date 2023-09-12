@@ -11,8 +11,8 @@ NaturalIdentifier = str
 @dataclasses.dataclass
 class Vector2:
 
-    x: int | float
-    y: int | float
+    x: typing.Union[int, float]
+    y: typing.Union[int, float]
 
     def __add__(self, other):
         if isinstance(other, Vector2):
@@ -37,10 +37,10 @@ class Vector2:
 @dataclasses.dataclass
 class Rectangle2:
 
-    x: int | float
-    y: int | float
-    width: int | float
-    height: int | float
+    x: typing.Union[int, float]
+    y: typing.Union[int, float]
+    width: typing.Union[int, float]
+    height: typing.Union[int, float]
 
     @property
     def tuple(self):
