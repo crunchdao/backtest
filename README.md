@@ -57,7 +57,7 @@ python3 -m backtest [OPTIONS]
 | `--symbol-mapping` | `<mapping>` | | `path` (.json) | Specify a custom symbol mapping file enabling vendor-id translation. |
 | `--no-caching` | | `false` | | Disable prices caching. |
 | `--fee-model` | `<model>` | | `expression` or `constant` | Specify a fee model to use. The value can be a `constant`. Or an expression that allow the usage of the `price` and `quantity` variable. <br /> Example: `abs(price * quantity) * 0.1` |
-| `--rfr-file` | `<directory>` | | `path` | The directory of rfr file to use. The file must contain a column with date information and a column with the rfr information in %. |
+| `--rfr-file` | `<file>` | | `path` | The path of rfr file to use. The file must contain a column with date information and a column with the rfr information in %. |
 | `--rfr-file-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
 
 #### Exporters
