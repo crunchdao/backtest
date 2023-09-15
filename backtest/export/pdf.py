@@ -58,7 +58,7 @@ class PdfExporter(BaseExporter):
         
         df_metrics = None
         if df_returns is not None:
-            df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False)
+            df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full")
             df_metrics.index = df_metrics.index.map(slugify.slugify)
             df_metrics.columns = df_metrics.columns.map(slugify.slugify)
 
@@ -75,13 +75,23 @@ class PdfExporter(BaseExporter):
                 "$qs.underwater-plot": lambda _: quantstats.plots.drawdown(df_returns, show=False),
             })
 
+            def get_metric(column: str, name: str):
+                try:
+                    name.index(".")
+                    print(f"[warning] invalid metric name: `{name}`: contains a dot")
+                    name = name.replace(".", "-")
+                except:
+                    pass
+
+                return df_metrics.loc[name, column]
+
             if df_benchmark is not None:
                 self.template.apply_re({
-                    r"\$qs\.metric\.(strategy|benchmark)\.(.+)": lambda _, type, metric: df_metrics.loc[metric, type],
+                    r"\$qs\.metric\.(strategy|benchmark)\.(.+)": lambda _, type, metric: get_metric(type, metric),
                 })
             else:
                 self.template.apply_re({
-                    r"\$qs\.metric\.strategy\.(.+)": lambda _, metric: df_metrics.loc[metric, "strategy"],
+                    r"\$qs\.metric\.strategy\.(.+)": lambda _, metric: get_metric("strategy", metric),
                 })
 
         self.template.apply(self.variables)
