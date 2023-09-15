@@ -110,7 +110,7 @@ class PdfTemplateRenderer(TemplateRenderer):
             image.position.x, image.position.y,
             image.position.width, image.position.height
         )
-    
+
     def _compute_lines(self, pdf: fpdf.FPDF, text: Text) -> typing.List[Line]:
         lines = []
         words = []
@@ -132,7 +132,7 @@ class PdfTemplateRenderer(TemplateRenderer):
                 ),
                 words=words
             ))
-            
+
             words = []
 
         font = text.font
@@ -160,13 +160,13 @@ class PdfTemplateRenderer(TemplateRenderer):
             color = span.color or text.color
             font = span.font or text.font
             pdf.set_font(font.family, '', font.size)
-            
+
             if self.debug:
                 if span_index % 2:
                     pdf.set_text_color(255, 0, 0)
                 else:
                     pdf.set_text_color(0, 255, 0)
-                
+
             span_height = font.size
 
             if word[0] == "\n":
@@ -194,7 +194,7 @@ class PdfTemplateRenderer(TemplateRenderer):
                     x = 0
                     y += height
                     next_x = span_width
-                
+
                 words.append(Word(
                     position=Rectangle2(
                         x, y,
@@ -208,7 +208,7 @@ class PdfTemplateRenderer(TemplateRenderer):
                 x = next_x
 
         commit_line(span_height)
-        
+
         return lines
 
     def _render_text(self, pdf: fpdf.FPDF, text: Text):
@@ -218,13 +218,13 @@ class PdfTemplateRenderer(TemplateRenderer):
         else:
             start_x = pdf.x - 3
             start_y = pdf.y + 1
-        
+
         lines = self._compute_lines(pdf, text)
 
         height_sum = sum(line.size.y for line in lines)
         free_space = max(0, text.position.height - height_sum)
         extra_space = free_space / (len(lines) + 1)
-        
+
         for index, line in enumerate(lines, 1):
             if right:
                 last_x = max(word.position.x + word.position.width for word in line.words) if len(line.words) else 0
@@ -303,7 +303,7 @@ class PdfTemplateRenderer(TemplateRenderer):
         if fontkey in pdf.fonts or fontkey in pdf.core_fonts:
             warnings.warn(f"Core font or font already added '{fontkey}': doing nothing")
             return
-    
+
         font = ttLib.TTFont(io.BytesIO(font.bytes), fontNumber=0, lazy=True)
 
         scale = 1000 / font["head"].unitsPerEm

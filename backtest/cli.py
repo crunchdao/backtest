@@ -4,17 +4,23 @@ import sys
 import typing
 import os
 import importlib
+import time
+import webbrowser
 
 import click
 import dotenv
 import pandas
+import contexttimer
+import watchdog
+import watchdog.observers
+import watchdog.events
 
 from .utils import is_number
 
 dotenv.load_dotenv()
 
 
-@click.command()
+@click.group(invoke_without_command=True)
 @click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 @click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
@@ -79,6 +85,12 @@ dotenv.load_dotenv()
 @click.option('--file-parquet-column-price', type=str, default="price", show_default=True, help="Specify the column name containing the prices.")
 @click.option('--rfr-file', type=str, help="Specify the path of the risk free rate file")
 @click.option('--rfr-file-column-date', type=str, default="date", help="Specify the date column of the risk free rate file")
+@click.pass_context
+def cli(ctx: click.Context, **kwargs):
+    if ctx.invoked_subcommand is None:
+        main(**kwargs)
+
+
 def main(
     start: datetime.datetime, end: datetime.datetime,
     offset_before_trading: int,
@@ -141,9 +153,9 @@ def main(
         end = end.date()
     else:
         end = dates[-1]
-    
+
     end += datetime.timedelta(days=offset_before_ending)
-    
+
     if end > now:
         end = now
 
@@ -184,7 +196,8 @@ def main(
         )
 
         if data_source is not None:
-            print(f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
+            print(
+                f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
 
             from .data.source import DelegateDataSource
             data_source = DelegateDataSource([
@@ -198,10 +211,12 @@ def main(
         from .data.source import YahooDataSource
         data_source = YahooDataSource()
 
-        print(f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
+        print(
+            f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
 
     from .price_provider import SymbolMapper
-    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
+    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(
+        symbol_mapping)
 
     fee_model = None
     if fee_model_value:
@@ -265,19 +280,17 @@ def main(
             csv_output_file=specific_return_output_file_csv,
             auto_delete=specific_return_auto_delete,
         ))
-    
+
     if pdf:
         from .export import QuantStatsExporter, DumpExporter
 
-        quantstats_exporter = next(filter(lambda x: isinstance(x, QuantStatsExporter), exporters), None)
-        dump_exporter = next(filter(lambda x: isinstance(x, DumpExporter), exporters), None)
+        quantstats_exporter = next(
+            filter(lambda x: isinstance(x, QuantStatsExporter), exporters), None)
+        dump_exporter = next(
+            filter(lambda x: isinstance(x, DumpExporter), exporters), None)
 
-        if pdf_template.endswith(".sketch"):
-            from .template import SketchTemplateLoader
-            template = SketchTemplateLoader().load(pdf_template)
-        else:
-            raise ValueError(f"unsupported template: {pdf_template}")
-        
+        template = _load_template(pdf_template)
+
         user_scripts = []
         for index, path in enumerate(pdf_user_script_paths or list()):
             directory = os.path.dirname(path)
@@ -341,3 +354,103 @@ def main(
         weekends=weekends,
         holidays=holidays
     )
+
+
+@cli.group(name="template")
+def template_group():
+    pass
+
+
+@template_group.command()
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def info(
+    template_path: str
+):
+    template = _load_template(template_path)
+
+    print(f"name: {template.name}")
+
+    keys = list(sorted((
+        key
+        for key in template.slots.keys()
+        if key.startswith("$")
+    )))
+
+    print(f"variables:")
+    for key in keys:
+        print(f"  {key}")
+
+
+@template_group.command()
+@click.option('--output-file', type=str, default="report-test.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--debug', is_flag=True, help="Enable debug rendering.")
+@click.option('--watch', is_flag=True, help="Watch and continuously re-render.")
+@click.option('--open', "open_after_render", is_flag=True, help="Open after render.")
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def identity(
+    template_path: str,
+    output_file: str,
+    debug: bool,
+    watch: bool,
+    open_after_render: bool,
+):
+    from .template import PdfTemplateRenderer
+    renderer = PdfTemplateRenderer(debug=debug)
+
+    def do_render():
+        with contexttimer.Timer(prefix="loading", output=sys.stderr):
+            template = _load_template(template_path)
+
+        with contexttimer.Timer(prefix="rendering", output=sys.stderr):
+            with open(output_file, "wb") as fd:
+                renderer.render(template, fd)
+        
+        if open_after_render:
+            webbrowser.open(output_file)
+
+    if watch:
+        do_render()
+
+        directory = os.path.dirname(template_path) or "."
+        path = os.path.join(directory, template_path)
+
+        class Handler(watchdog.events.FileSystemEventHandler):
+
+            def dispatch(self, event):
+                if event.src_path != path:
+                    return
+
+                super().dispatch(event)
+
+            def on_modified(self, event):
+                do_render()
+
+            def on_created(self, event):
+                do_render()
+
+        event_handler = Handler()
+
+        observer = watchdog.observers.Observer()
+        observer.schedule(event_handler, directory, recursive=False)
+        observer.start()
+
+        try:
+            print(f"watching for changes on: {template_path}")
+
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("exit")
+        finally:
+            observer.stop()
+            observer.join()
+    else:
+        do_render()
+
+
+def _load_template(path: str):
+    if path.endswith(".sketch"):
+        from .template import SketchTemplateLoader
+        return SketchTemplateLoader().load(path)
+    else:
+        raise click.Abort(f"unsupported template: {path}")
