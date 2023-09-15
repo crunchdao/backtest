@@ -213,6 +213,8 @@ class SketchTemplateLoader(TemplateLoader):
         "\uFB01": "fi",
         "\uFB02": "fl",
         "\u2019": "'",
+        "\u201C": "\"",
+        "\u201D": "\"",
         "\t": " ",
     }
 
