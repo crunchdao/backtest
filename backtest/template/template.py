@@ -49,10 +49,11 @@ class Template:
 
                 found = True
 
+                real_value = value
                 if callable(value):
-                    value = value(key, *match.groups())
+                    real_value = value(key, *match.groups())
 
-                self._set(elements, value, key)
+                self._set(elements, real_value, key)
 
             if not found:
                 self.log(f"no element for pattern={pattern}")
