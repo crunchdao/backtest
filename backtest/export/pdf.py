@@ -66,7 +66,7 @@ class PdfExporter(BaseExporter):
         df_metrics, df_drowdowns = None, None
         if df_returns is not None:
             df_returns.name = "Strategy"
-            df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full")
+            df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full", as_pct=True)
             df_metrics.index = df_metrics.index.map(slugify.slugify)
             df_metrics.columns = df_metrics.columns.map(slugify.slugify)
 
@@ -119,9 +119,6 @@ class PdfExporter(BaseExporter):
                 if name in NOT_PERCENT:
                     return value
                 else:
-                    value *= 100
-                    value = round(value, 2)
-                    
                     return f"{value}%"
 
             def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
