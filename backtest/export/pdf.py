@@ -122,10 +122,6 @@ class PdfExporter(BaseExporter):
                     value *= 100
                     value = round(value, 2)
                     
-                    int_value = int(value)
-                    if value == int_value:
-                        value = int_value
-                    
                     return f"{value}%"
 
             def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
