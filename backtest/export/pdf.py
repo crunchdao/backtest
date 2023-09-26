@@ -54,8 +54,11 @@ class PdfExporter(BaseExporter):
     def finalize(self) -> None:
         df_returns = self.quantstats_exporter.returns if self.quantstats_exporter else None
         df_benchmark = self.quantstats_exporter.benchmark if self.quantstats_exporter else None
-        df_dump = self.dump_exporter.dataframe.reset_index().sort_values(by='date') if self.dump_exporter else None
         
+        df_dump = None
+        if self.dump_exporter and self.dump_exporter.dataframe is not None:
+            df_dump = self.dump_exporter.dataframe.reset_index().sort_values(by='date')
+
         df_metrics = None
         if df_returns is not None:
             df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full")

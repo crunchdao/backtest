@@ -14,8 +14,9 @@ import contexttimer
 import watchdog
 import watchdog.observers
 import watchdog.events
+import readwrite
 
-from .utils import is_number
+from .utils import is_number, use_attrs
 
 dotenv.load_dotenv()
 
@@ -290,26 +291,7 @@ def main(
             filter(lambda x: isinstance(x, DumpExporter), exporters), None)
 
         template = _load_template(pdf_template)
-
-        user_scripts = []
-        for index, path in enumerate(pdf_user_script_paths or list()):
-            directory = os.path.dirname(path)
-
-            spec = importlib.util.spec_from_file_location(
-                f"pdf_user_code_{index}",
-                path
-            )
-
-            print(path)
-
-            print(spec)
-
-            module = importlib.util.module_from_spec(spec)
-
-            sys.path.insert(0, directory)
-            spec.loader.exec_module(module)
-
-            user_scripts.append(module)
+        user_scripts = _load_user_scripts(pdf_user_script_paths)
 
         from .export import PdfExporter
         exporters.append(PdfExporter(
@@ -319,8 +301,8 @@ def main(
             output_file=pdf_output_file,
             auto_delete=pdf_auto_delete,
             debug=pdf_debug,
-            variables=dict(pdf_variables or tuple()),
-            user_scripts=user_scripts or list()
+            variables=_to_variables(pdf_variables),
+            user_scripts=user_scripts
         ))
 
     if not len(exporters):
@@ -382,7 +364,58 @@ def info(
 
 
 @template_group.command()
-@click.option('--output-file', type=str, default="report-test.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--debug', is_flag=True, help="Enable renderer debugging.")
+@click.option('--variable', "variables", nargs=2, multiple=True, type=(str, str), help="Specify custom variables.")
+@click.option('--user-script', "user_script_paths", multiple=True, type=str, help="Specify custom scripts.")
+@click.option('--dataframe-returns', "dataframe_returns_path", type=click.Path(exists=True), help="Specify the returns dataframe path (from quantstats exporter).")
+@click.option('--dataframe-benchmark', "dataframe_benchmark_path", type=click.Path(exists=True), help="Specify benchmark dataframe path (from quantstats exporter).")
+@click.option('--dataframe-dump', "dataframe_dump_path", type=click.Path(exists=True), help="Specify dump dataframe path (from dump exporter).")
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def render(
+    output_file: str,
+    debug: bool,
+    variables: typing.List[str],
+    user_script_paths: typing.List[str],
+    dataframe_returns_path: typing.Optional[str],
+    dataframe_benchmark_path: typing.Optional[str],
+    dataframe_dump_path: typing.Optional[str],
+    template_path: str,
+):
+    template = _load_template(template_path)
+    user_scripts = _load_user_scripts(user_script_paths)
+
+    dataframe_returns = readwrite.read(dataframe_returns_path)
+    dataframe_benchmark = readwrite.read(dataframe_benchmark_path)
+    dataframe_dump = readwrite.read(dataframe_dump_path)
+
+    quantstats_exporter = use_attrs({
+        "returns": dataframe_returns,
+        "benchmark": dataframe_benchmark,
+    })
+
+    if dataframe_dump is not None:
+        dataframe_dump["date"] = pandas.to_datetime(dataframe_dump["date"]).dt.date
+
+    dump_exporter = use_attrs({
+        "dataframe": dataframe_dump,
+    })
+
+    from .export import PdfExporter
+    PdfExporter(
+        quantstats_exporter=quantstats_exporter,
+        dump_exporter=dump_exporter,
+        template=template,
+        output_file=output_file,
+        auto_delete=True,
+        debug=debug,
+        variables=_to_variables(variables),
+        user_scripts=user_scripts
+    ).finalize()
+
+
+@template_group.command()
+@click.option('--output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
 @click.option('--debug', is_flag=True, help="Enable debug rendering.")
 @click.option('--watch', is_flag=True, help="Watch and continuously re-render.")
 @click.option('--open', "open_after_render", is_flag=True, help="Open after render.")
@@ -404,7 +437,7 @@ def identity(
         with contexttimer.Timer(prefix="rendering", output=sys.stderr):
             with open(output_file, "wb") as fd:
                 renderer.render(template, fd)
-        
+
         if open_after_render:
             webbrowser.open(output_file)
 
@@ -454,3 +487,31 @@ def _load_template(path: str):
         return SketchTemplateLoader().load(path)
     else:
         raise click.Abort(f"unsupported template: {path}")
+
+
+def _load_user_scripts(paths: typing.List[str]):
+    modules = []
+
+    for index, path in enumerate(paths or list()):
+        directory = os.path.dirname(path)
+
+        spec = importlib.util.spec_from_file_location(
+            f"user_code_{index}",
+            path
+        )
+
+        module = importlib.util.module_from_spec(spec)
+
+        sys.path.insert(0, directory)
+        spec.loader.exec_module(module)
+
+        modules.append(module)
+
+    return modules
+
+
+def _to_variables(variables: typing.Optional[typing.List[typing.Tuple[str, str]]]):
+    return {
+        f"${key}": value
+        for key, value in (variables or tuple())
+    }
