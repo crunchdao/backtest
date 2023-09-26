@@ -93,6 +93,14 @@ class PdfExporter(BaseExporter):
                 "$qs.underwater-plot": lambda _: quantstats.plots.drawdown(df_returns, show=False),
             })
 
+            # TODO Use name% format instead
+            NOT_PERCENT = [
+                "sharpe",
+                "avg-drawdown-days",
+                "kurtosis",
+                "sortino",
+            ]
+
             def get_metric(column: str, name: str):
                 try:
                     name.index(".")
@@ -101,7 +109,12 @@ class PdfExporter(BaseExporter):
                 except:
                     pass
 
-                return df_metrics.loc[name, column]
+                value = df_metrics.loc[name, column]
+                if name in NOT_PERCENT:
+                    return value
+                else:
+                    value *= 100
+                    return f"{value:.2f}%"
 
             def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
                 if df_drowdowns is not None and len(df_drowdowns) >= n:
