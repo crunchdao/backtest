@@ -116,10 +116,11 @@ class PdfExporter(BaseExporter):
                     pass
 
                 value = df_metrics.loc[name, column]
-                if name not in NOT_PERCENT:
+                if name in NOT_PERCENT:
+                    return value
+                else:
                     value *= 100
-
-                return value
+                    return f"{value:.2f}%"
 
             def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
                 if df_drowdowns is not None and len(df_drowdowns) >= n:
