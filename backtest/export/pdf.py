@@ -60,8 +60,12 @@ class PdfExporter(BaseExporter):
         if self.dump_exporter and self.dump_exporter.dataframe is not None:
             df_dump = self.dump_exporter.dataframe.reset_index().sort_values(by='date')
 
+        if df_benchmark is not None:
+            df_benchmark.name = "RUSSELL (1000)"
+
         df_metrics, df_drowdowns = None, None
         if df_returns is not None:
+            df_returns.name = "Strategy"
             df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full")
             df_metrics.index = df_metrics.index.map(slugify.slugify)
             df_metrics.columns = df_metrics.columns.map(slugify.slugify)
