@@ -120,7 +120,13 @@ class PdfExporter(BaseExporter):
                     return value
                 else:
                     value *= 100
-                    return f"{value:.2f}%"
+                    value = round(value, 2)
+                    
+                    int_value = int(value)
+                    if value == int_value:
+                        value = int_value
+                    
+                    return f"{value}%"
 
             def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
                 if df_drowdowns is not None and len(df_drowdowns) >= n:
