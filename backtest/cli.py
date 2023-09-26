@@ -389,6 +389,16 @@ def render(
     dataframe_benchmark = readwrite.read(dataframe_benchmark_path)
     dataframe_dump = readwrite.read(dataframe_dump_path)
 
+    if dataframe_returns is not None:
+        dataframe_returns["date"] = pandas.to_datetime(dataframe_returns["date"])
+        dataframe_returns.set_index("date", drop=True, inplace=True)
+        dataframe_returns = dataframe_returns["daily_profit_pct"]
+
+    if dataframe_benchmark is not None:
+        dataframe_benchmark["date"] = pandas.to_datetime(dataframe_benchmark["date"]).dt.date
+        dataframe_benchmark.set_index("date", drop=True, inplace=True)
+        dataframe_benchmark = dataframe_benchmark["close"]
+
     quantstats_exporter = use_attrs({
         "returns": dataframe_returns,
         "benchmark": dataframe_benchmark,

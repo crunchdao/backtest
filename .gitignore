@@ -262,3 +262,11 @@ cython_debug/
 /report.csv
 /report.html
 dump.csv
+
+*.csv
+*.parquet
+*.pdf
+*.html
+*.ttf
+*.ipynb
+*.sketch

@@ -4,6 +4,7 @@ import os
 import typing
 import quantstats
 import slugify
+import pandas
 
 from .base import BaseExporter
 from .quants import QuantStatsExporter
@@ -59,11 +60,25 @@ class PdfExporter(BaseExporter):
         if self.dump_exporter and self.dump_exporter.dataframe is not None:
             df_dump = self.dump_exporter.dataframe.reset_index().sort_values(by='date')
 
-        df_metrics = None
+        df_metrics, df_drowdowns = None, None
         if df_returns is not None:
             df_metrics = quantstats.reports.metrics(df_returns, benchmark=df_benchmark, display=False, mode="full")
             df_metrics.index = df_metrics.index.map(slugify.slugify)
             df_metrics.columns = df_metrics.columns.map(slugify.slugify)
+            
+            df_drowdowns = quantstats.stats.to_drawdown_series(df_returns)
+            if not df_drowdowns.empty:
+                details = quantstats.stats.drawdown_details(df_drowdowns)
+                df_drowdowns = details.sort_values(
+                    by=details.columns[4],
+                    ascending = True
+                )[:5]
+            
+            if df_drowdowns.empty:
+                df_drowdowns = None
+            else:
+                df_drowdowns["start"] = pandas.to_datetime(df_drowdowns["start"])
+                df_drowdowns["end"] = pandas.to_datetime(df_drowdowns["end"])
 
         self.template.apply({
             "$date": datetime.date.today().isoformat(),
@@ -73,7 +88,7 @@ class PdfExporter(BaseExporter):
             self.template.apply({
                 "$qs.montly-returns": lambda _: quantstats.plots.monthly_returns(df_returns, show=False, cbar=False),
                 "$qs.cumulative-returns": lambda _: quantstats.plots.returns(df_returns, df_benchmark, show=False, subtitle=False),
-                "$qs.cumulative-returns-volatility": lambda _: quantstats.plots.returns(df_returns, df_benchmark, match_volatility=True, show=False),
+                "$qs.cumulative-returns-volatility": lambda _: quantstats.plots.returns(df_returns, df_benchmark, match_volatility=df_benchmark is not None, show=False),
                 "$qs.eoy-returns": lambda _: quantstats.plots.yearly_returns(df_returns, df_benchmark, show=False),
                 "$qs.underwater-plot": lambda _: quantstats.plots.drawdown(df_returns, show=False),
             })
@@ -88,6 +103,28 @@ class PdfExporter(BaseExporter):
 
                 return df_metrics.loc[name, column]
 
+            def get_drawdown(n: int, key: typing.Union[typing.Literal["dates"], typing.Literal["value"]]):
+                if df_drowdowns is not None and len(df_drowdowns) >= n:
+                    index = n - 1
+                    row = df_drowdowns.iloc[index]
+                else:
+                    row = None
+                
+                if key == "dates":
+                    if row is None:
+                        return "----/--/-- - ----/--/--"
+
+                    start = row["start"].strftime('%Y/%m/%d')
+                    end = row["end"].strftime('%Y/%m/%d')
+
+                    return f"{start} - {end}"
+                else:
+                    if row is None:
+                        return "--%"
+
+                    value = row["max drawdown"]
+                    return f"{value:.2f}%"
+
             if df_benchmark is not None:
                 self.template.apply_re({
                     r"\$qs\.metric\.(strategy|benchmark)\.(.+)": lambda _, type, metric: get_metric(type, metric),
@@ -96,6 +133,11 @@ class PdfExporter(BaseExporter):
                 self.template.apply_re({
                     r"\$qs\.metric\.strategy\.(.+)": lambda _, metric: get_metric("strategy", metric),
                 })
+        
+        self.template.apply_re({
+            r"\$qs\.worst-drawdowns\.(\d+).(dates|value)": lambda _, n, key: get_drawdown(int(n), key),
+        })
+
 
         self.template.apply(self.variables)
 
