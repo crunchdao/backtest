@@ -16,3 +16,6 @@ seaborn>=0.11.0, <0.12.0
 python-slugify
 cached-property
 fpdf2==2.7.4
+contexttimer
+watchdog
+fastparquet
