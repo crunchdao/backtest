@@ -15,6 +15,7 @@ A small backtesting utility.
         - [Dump](#dump)
         - [Influx](#influx)
         - [QuantStats](#quantstats)
+        - [PDF](#pdf)
         - [Specific Return](#specific-return)
       - [Data Sources](#data-sources)
         - [Yahoo](#yahoo)
@@ -111,6 +112,20 @@ Generate a tearsheet from the backtest data.
 | `--quantstats-output-file-csv` | `<file>` | `report.csv` | `path` | Specify the output file containing raw returns. |
 | `--quantstats-benchmark-ticker` | `<ticker>` | `SPY` | `symbol` | Specify the ticker to use as a benchmark in the tearsheet. |
 | `--quantstats-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
+
+##### PDF
+
+Generate a tearsheet from a custom template.
+
+| Option | Value | Default | Format | Description |
+| --- | --- | --- | --- | --- |
+| `--pdf` | | `false` | | Enable the pdf exporter. |
+| `--pdf-template` | `<file>` | `tearsheet.sketch` | `path` | Specify the template file. |
+| `--pdf-output-file` | `<file>` | `report.pdf` | `path` | Specify the output file. |
+| `--pdf-auto-delete` | | `false` | | Automatically delete the previous report file if present. |
+| `--pdf-debug` | | `false` | | Enable the pdf renderer's debugging tools. |
+| `--pdf-variable` | `[<key> <value>]` | `[]` | `string` `string` | Add a custom variable. |
+| `--pdf-user-script` | `[<file>]` | `[]` | `path` | Add a user script. |
 
 ##### Specific Return
 

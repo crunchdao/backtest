@@ -1,3 +1,3 @@
 from backtest import cli
 
-cli.main()
+cli.cli()

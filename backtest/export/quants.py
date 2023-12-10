@@ -108,6 +108,9 @@ class QuantStatsExporter(BaseExporter):
             else:
                 print(f"[warning] {self.csv_output_file} already exists", file=sys.stderr)
 
+        self.returns = returns
+        self.benchmark = benchmark
+
         if self.html_output_file is not None:
             if self.auto_override or not os.path.exists(self.html_output_file):
                 quantstats.reports.html(returns, benchmark=benchmark, output=self.html_output_file, active_returns=False)

@@ -1,16 +1,27 @@
 import datetime
+import logging
 import sys
-import pandas as pd
+import typing
+import os
+import importlib
+import time
+import webbrowser
 
 import click
 import dotenv
+import pandas
+import contexttimer
+import watchdog
+import watchdog.observers
+import watchdog.events
+import readwrite
 
-from .utils import is_number
+from .utils import is_number, use_attrs
 
 dotenv.load_dotenv()
 
 
-@click.command()
+@click.group(invoke_without_command=True)
 @click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 @click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
@@ -48,6 +59,13 @@ dotenv.load_dotenv()
 @click.option('--quantstats-output-file-csv', type=str, default="report.csv", show_default=True, help="Specify the output csv file.")
 @click.option('--quantstats-benchmark-ticker', type=str, default="SPY", show_default=True, help="Specify the symbol to use as a benchmark.")
 @click.option('--quantstats-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
+@click.option('--pdf', is_flag=True, help="Enable the quantstats exporter.")
+@click.option('--pdf-template', type=str, default="tearsheet.sketch", show_default=True, help="Specify the template file.")
+@click.option('--pdf-output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--pdf-auto-delete', is_flag=True, help="Should aa conflicting file be automatically deleted?")
+@click.option('--pdf-debug', is_flag=True, help="Enable renderer debugging.")
+@click.option('--pdf-variable', "pdf_variables", nargs=2, multiple=True, type=(str, str), help="Specify custom variables.")
+@click.option('--pdf-user-script', "pdf_user_script_paths", multiple=True, type=str, help="Specify custom scripts.")
 @click.option('--specific-return', type=str, help="Enable the specific return exporter by proving a .parquet.")
 @click.option('--specific-return-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--specific-return-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
@@ -68,6 +86,12 @@ dotenv.load_dotenv()
 @click.option('--file-parquet-column-price', type=str, default="price", show_default=True, help="Specify the column name containing the prices.")
 @click.option('--rfr-file', type=str, help="Specify the path of the risk free rate file")
 @click.option('--rfr-file-column-date', type=str, default="date", help="Specify the date column of the risk free rate file")
+@click.pass_context
+def cli(ctx: click.Context, **kwargs):
+    if ctx.invoked_subcommand is None:
+        main(**kwargs)
+
+
 def main(
     start: datetime.datetime, end: datetime.datetime,
     offset_before_trading: int,
@@ -82,6 +106,7 @@ def main(
     dump: str, dump_output_file: str, dump_auto_delete: bool,
     influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
+    pdf: bool, pdf_template: str, pdf_output_file: str, pdf_auto_delete: bool, pdf_debug: bool, pdf_variables: typing.Tuple[typing.Tuple[str, str]], pdf_user_script_paths: str,
     specific_return: str, specific_return_column_date: str, specific_return_column_symbol: str, specific_return_column_value: str, specific_return_output_file_html: str, specific_return_output_file_csv: str, specific_return_auto_delete: bool,
     yahoo,
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
@@ -89,6 +114,8 @@ def main(
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
     rfr_file: str, rfr_file_column_date: str
 ):
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
+
     now = datetime.date.today()
 
     quantity_in_decimal = quantity_mode == "percent"
@@ -127,9 +154,9 @@ def main(
         end = end.date()
     else:
         end = dates[-1]
-    
+
     end += datetime.timedelta(days=offset_before_ending)
-    
+
     if end > now:
         end = now
 
@@ -170,7 +197,8 @@ def main(
         )
 
         if data_source is not None:
-            print(f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
+            print(
+                f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
 
             from .data.source import DelegateDataSource
             data_source = DelegateDataSource([
@@ -184,10 +212,12 @@ def main(
         from .data.source import YahooDataSource
         data_source = YahooDataSource()
 
-        print(f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
+        print(
+            f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
 
     from .price_provider import SymbolMapper
-    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(symbol_mapping)
+    symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(
+        symbol_mapping)
 
     fee_model = None
     if fee_model_value:
@@ -252,6 +282,29 @@ def main(
             auto_delete=specific_return_auto_delete,
         ))
 
+    if pdf:
+        from .export import QuantStatsExporter, DumpExporter
+
+        quantstats_exporter = next(
+            filter(lambda x: isinstance(x, QuantStatsExporter), exporters), None)
+        dump_exporter = next(
+            filter(lambda x: isinstance(x, DumpExporter), exporters), None)
+
+        template = _load_template(pdf_template)
+        user_scripts = _load_user_scripts(pdf_user_script_paths)
+
+        from .export import PdfExporter
+        exporters.append(PdfExporter(
+            quantstats_exporter=quantstats_exporter,
+            dump_exporter=dump_exporter,
+            template=template,
+            output_file=pdf_output_file,
+            auto_delete=pdf_auto_delete,
+            debug=pdf_debug,
+            variables=_to_variables(pdf_variables),
+            user_scripts=user_scripts
+        ))
+
     if not len(exporters):
         from .export import ConsoleExporter
         exporters.append(ConsoleExporter())
@@ -260,10 +313,10 @@ def main(
             f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
     if rfr_file:
-        rfr = pd.read_parquet(rfr_file)
+        rfr = pandas.read_parquet(rfr_file)
         rfr = rfr.set_index(rfr_file_column_date)
     else:
-        rfr = pd.Series()
+        rfr = pandas.Series(dtype="float64")
 
     from .backtest import Backtester
     Backtester(
@@ -283,3 +336,192 @@ def main(
         weekends=weekends,
         holidays=holidays
     )
+
+
+@cli.group(name="template")
+def template_group():
+    pass
+
+
+@template_group.command()
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def info(
+    template_path: str
+):
+    template = _load_template(template_path)
+
+    print(f"name: {template.name}")
+
+    keys = list(sorted((
+        key
+        for key in template.slots.keys()
+        if key.startswith("$")
+    )))
+
+    print(f"variables:")
+    for key in keys:
+        print(f"  {key}")
+
+
+@template_group.command()
+@click.option('--output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--debug', is_flag=True, help="Enable renderer debugging.")
+@click.option('--variable', "variables", nargs=2, multiple=True, type=(str, str), help="Specify custom variables.")
+@click.option('--user-script', "user_script_paths", multiple=True, type=str, help="Specify custom scripts.")
+@click.option('--dataframe-returns', "dataframe_returns_path", type=click.Path(exists=True), help="Specify the returns dataframe path (from quantstats exporter).")
+@click.option('--dataframe-benchmark', "dataframe_benchmark_path", type=click.Path(exists=True), help="Specify benchmark dataframe path (from quantstats exporter).")
+@click.option('--dataframe-dump', "dataframe_dump_path", type=click.Path(exists=True), help="Specify dump dataframe path (from dump exporter).")
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def render(
+    output_file: str,
+    debug: bool,
+    variables: typing.List[str],
+    user_script_paths: typing.List[str],
+    dataframe_returns_path: typing.Optional[str],
+    dataframe_benchmark_path: typing.Optional[str],
+    dataframe_dump_path: typing.Optional[str],
+    template_path: str,
+):
+    template = _load_template(template_path)
+    user_scripts = _load_user_scripts(user_script_paths)
+
+    dataframe_returns = readwrite.read(dataframe_returns_path)
+    dataframe_benchmark = readwrite.read(dataframe_benchmark_path)
+    dataframe_dump = readwrite.read(dataframe_dump_path)
+
+    if dataframe_returns is not None:
+        dataframe_returns["date"] = pandas.to_datetime(dataframe_returns["date"])
+        dataframe_returns.set_index("date", drop=True, inplace=True)
+        dataframe_returns = dataframe_returns["daily_profit_pct"]
+
+    if dataframe_benchmark is not None:
+        dataframe_benchmark["date"] = pandas.to_datetime(dataframe_benchmark["date"]).dt.date
+        dataframe_benchmark.set_index("date", drop=True, inplace=True)
+        dataframe_benchmark = dataframe_benchmark["close"]
+
+    quantstats_exporter = use_attrs({
+        "returns": dataframe_returns,
+        "benchmark": dataframe_benchmark,
+    })
+
+    if dataframe_dump is not None:
+        dataframe_dump["date"] = pandas.to_datetime(dataframe_dump["date"]).dt.date
+
+    dump_exporter = use_attrs({
+        "dataframe": dataframe_dump,
+    })
+
+    from .export import PdfExporter
+    PdfExporter(
+        quantstats_exporter=quantstats_exporter,
+        dump_exporter=dump_exporter,
+        template=template,
+        output_file=output_file,
+        auto_delete=True,
+        debug=debug,
+        variables=_to_variables(variables),
+        user_scripts=user_scripts
+    ).finalize()
+
+
+@template_group.command()
+@click.option('--output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
+@click.option('--debug', is_flag=True, help="Enable debug rendering.")
+@click.option('--watch', is_flag=True, help="Watch and continuously re-render.")
+@click.option('--open', "open_after_render", is_flag=True, help="Open after render.")
+@click.argument('template-path', type=click.Path(exists=True, dir_okay=False), default="tearsheet.sketch")
+def identity(
+    template_path: str,
+    output_file: str,
+    debug: bool,
+    watch: bool,
+    open_after_render: bool,
+):
+    from .template import PdfTemplateRenderer
+    renderer = PdfTemplateRenderer(debug=debug)
+
+    def do_render():
+        with contexttimer.Timer(prefix="loading", output=sys.stderr):
+            template = _load_template(template_path)
+
+        with contexttimer.Timer(prefix="rendering", output=sys.stderr):
+            with open(output_file, "wb") as fd:
+                renderer.render(template, fd)
+
+        if open_after_render:
+            webbrowser.open(output_file)
+
+    if watch:
+        do_render()
+
+        directory = os.path.dirname(template_path) or "."
+        path = os.path.join(directory, template_path)
+
+        class Handler(watchdog.events.FileSystemEventHandler):
+
+            def dispatch(self, event):
+                if event.src_path != path:
+                    return
+
+                super().dispatch(event)
+
+            def on_modified(self, event):
+                do_render()
+
+            def on_created(self, event):
+                do_render()
+
+        event_handler = Handler()
+
+        observer = watchdog.observers.Observer()
+        observer.schedule(event_handler, directory, recursive=False)
+        observer.start()
+
+        try:
+            print(f"watching for changes on: {template_path}")
+
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("exit")
+        finally:
+            observer.stop()
+            observer.join()
+    else:
+        do_render()
+
+
+def _load_template(path: str):
+    if path.endswith(".sketch"):
+        from .template import SketchTemplateLoader
+        return SketchTemplateLoader().load(path)
+    else:
+        raise click.Abort(f"unsupported template: {path}")
+
+
+def _load_user_scripts(paths: typing.List[str]):
+    modules = []
+
+    for index, path in enumerate(paths or list()):
+        directory = os.path.dirname(path)
+
+        spec = importlib.util.spec_from_file_location(
+            f"user_code_{index}",
+            path
+        )
+
+        module = importlib.util.module_from_spec(spec)
+
+        sys.path.insert(0, directory)
+        spec.loader.exec_module(module)
+
+        modules.append(module)
+
+    return modules
+
+
+def _to_variables(variables: typing.Optional[typing.List[typing.Tuple[str, str]]]):
+    return {
+        f"${key}": value
+        for key, value in (variables or tuple())
+    }
