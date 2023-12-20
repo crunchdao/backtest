@@ -116,7 +116,7 @@ class PdfExporter(BaseExporter):
                     pass
 
                 if name not in df_metrics.index:
-                    print(f"[warning] invalid metric name: `{name}`: not in index: {df_metrics.index}")
+                    print(f"[warning] invalid metric name: `{name}`: not in index: {list(df_metrics.index)}")
                     return "-"
 
                 value = df_metrics.loc[name, column]
