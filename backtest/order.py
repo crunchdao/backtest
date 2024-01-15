@@ -1,14 +1,66 @@
 import abc
+import dataclasses
 import datetime
+import enum
 import functools
 import typing
 
 import numpy
 import pandas
-import typing
 
-from ._model import Order
-from .. import constants
+from . import constants, utils
+
+
+class OrderDirection(enum.IntEnum):
+
+    SELL = -1
+    HOLD = 0
+    BUY = 1
+
+
+@dataclasses.dataclass()
+class Order:
+
+    symbol: str
+    quantity: int
+    price: float
+
+    @property
+    def value(self) -> float:
+        return self.quantity * self.price
+
+    @property
+    def direction(self) -> OrderDirection:
+        if self.quantity > 0:
+            return OrderDirection.BUY
+
+        if self.quantity < 0:
+            return OrderDirection.SELL
+
+        return OrderDirection.HOLD
+
+    @property
+    def valid(self):
+        return not utils.is_blank(self.symbol) \
+            and self.price > 0
+
+
+@dataclasses.dataclass()
+class OrderResult:
+
+    order: Order
+    success: bool = False
+    fee: float = 0.0
+
+
+@dataclasses.dataclass()
+class CloseResult:
+
+    order: Order
+    success: bool = False
+    missing: bool = False
+    fee: float = 0.0
+
 
 class OrderProvider(metaclass=abc.ABCMeta):
 
@@ -31,6 +83,9 @@ class DataFrameOrderProvider(OrderProvider):
         symbol_column=constants.DEFAULT_SYMBOL_COLUMN,
         quantity_column=constants.DEFAULT_QUANTITY_COLUMN
     ) -> None:
+        if not isinstance(dataframe, pandas.DataFrame):
+            dataframe = pandas.DataFrame(dataframe)
+
         dataframe = dataframe[[
             date_column,
             symbol_column,
@@ -70,7 +125,7 @@ class DataFrameOrderProvider(OrderProvider):
             self.symbol_column,
             self.quantity_column
         )
-    
+
     @staticmethod
     def convert(
         dataframe: pandas.DataFrame,

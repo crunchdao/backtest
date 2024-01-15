@@ -8,8 +8,7 @@ from .account import Account
 from .data.source.base import DataSource
 from .export import BaseExporter, Snapshot
 from .fee import ConstantFeeModel, FeeModel
-from .order import Order, OrderResult
-from .order.provider import OrderProvider
+from .order import Order, OrderResult, OrderProvider
 from .price_provider import PriceProvider, SymbolMapper
 
 

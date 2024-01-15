@@ -120,7 +120,7 @@ def main(
 
     quantity_in_decimal = quantity_mode == "percent"
 
-    from .order.provider import DataFrameOrderProvider
+    from .order import DataFrameOrderProvider
     order_provider = DataFrameOrderProvider(
         readwrite.read(order_file),
         offset_before_trading,
@@ -168,9 +168,9 @@ def main(
         )
 
     if file_parquet:
-        from .data.source.file import RowParquetFileDataSource
-        file_data_source = RowParquetFileDataSource(
-            path=file_parquet,
+        from .data.source import DataFrameDataSource
+        file_data_source = DataFrameDataSource(
+            path=readwrite.read(file_parquet),
             date_column=file_parquet_column_date,
             symbol_column=file_parquet_column_symbol,
             price_column=file_parquet_column_price

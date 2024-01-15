@@ -1,8 +1,3 @@
-import abc
-import datetime
-import typing
-
-import pandas
 import yfinance
 
 from .base import DataSource
@@ -10,8 +5,7 @@ from .base import DataSource
 
 class YahooDataSource(DataSource):
 
-    @abc.abstractmethod
-    def fetch_prices(self, symbols: typing.Set[str], start: datetime.date, end: datetime.date) -> pandas.DataFrame:
+    def fetch_prices(self, symbols, start, end):
         return yfinance.download(
             tickers=symbols,
             start=start,
@@ -19,6 +13,5 @@ class YahooDataSource(DataSource):
             show_errors=False
         )["Adj Close"]
 
-    @abc.abstractmethod
-    def is_closeable(self) -> bool:
+    def is_closeable(self):
         return True
