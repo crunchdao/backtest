@@ -161,8 +161,12 @@ class Backtester:
         for holding in self.account.holdings:
             price = self.price_provider.get(date, holding.symbol)
 
-            if price is not None:
+            if price is None:
+                print(f"[warning] price not updated: {holding.symbol}: keeping last: {holding.price}", file=sys.stderr)
+                holding.up_to_date = False
+            else:
                 holding.price = price
+                holding.up_to_date = True
 
     def run(self, weekends=False, holidays=False):
         date = self.start
@@ -199,21 +203,24 @@ class Backtester:
                         date += datetime.timedelta(days=1)
                         continue
 
+            self.update_price(date)
+            self.fire_snapshot(date, None)
+            
             for postponned_date in postponned:
                 result = self.order(postponned_date, price_date=date)
                 self.fire_snapshot(date, result, postponned=postponned_date)
 
             postponned.clear()
-
+            
             result = None
             if ordered:
                 result = self.order(date)
-            else:
-                self.update_price(date)
 
             if len(self.rfr.index) > 0:
                 self.account.interest_on_cash(self.rfr[self.rfr.index <= pd.to_datetime(date)].iloc[-1][0])
-            self.fire_snapshot(date, result)
+            
+            if result is not None:
+                self.fire_snapshot(date, result)
 
             date += datetime.timedelta(days=1)
 
@@ -248,6 +255,8 @@ class Backtester:
         
             snapshot.closed_count = result.closed_count
             snapshot.closed_total = result.closed_total
+            
+            snapshot.order_results = result.order_results
 
         for exporter in self.exporters:
             exporter.on_snapshot(snapshot)

@@ -22,6 +22,8 @@ class Snapshot:
     closed_count: int = None
     closed_total: int = None
     
+    order_results: list = dataclasses.field(default_factory=list)
+    
     @property
     def holding_count(self) -> int:
         return len(self.holdings)
