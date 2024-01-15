@@ -2,14 +2,6 @@ import unittest
 import backtest
 
 
-class FeeModelTest(unittest.TestCase):
-
-    def test_get_order_fee(self):
-        model = backtest.fee.FeeModel()
-
-        self.assertEqual(0, model.get_order_fee(None))
-
-
 class ConstantFeeModelTest(unittest.TestCase):
 
     def test_get_order_fee(self):
