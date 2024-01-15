@@ -42,5 +42,5 @@ class DataFrameOrderProvider(OrderProvider):
         ]
     
     @abc.abstractmethod
-    def get_orders_dataframe(self, date: datetime.date) -> pandas.DataFrame:
+    def get_orders_dataframe(self, date: datetime.date, account: "Account") -> pandas.DataFrame:
         return self.dataframe[self.dataframe["date"] == numpy.datetime64(date)]

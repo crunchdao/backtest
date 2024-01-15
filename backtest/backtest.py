@@ -81,7 +81,7 @@ class Backtester:
         if price_date is None:
             price_date = date
 
-        orders_dataframe = self.order_provider.get_orders_dataframe(date)
+        orders_dataframe = self.order_provider.get_orders_dataframe(date, self.account)
 
         symbols = orders_dataframe["symbol"].tolist()
 

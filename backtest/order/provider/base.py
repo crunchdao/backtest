@@ -13,5 +13,5 @@ class OrderProvider:
         return []
 
     @abc.abstractmethod
-    def get_orders_dataframe(self, date: datetime.date) -> pandas.DataFrame:
+    def get_orders_dataframe(self, date: datetime.date, account: "Account") -> pandas.DataFrame:
         pass
