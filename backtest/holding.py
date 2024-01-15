@@ -3,7 +3,7 @@ from .order import Order
 
 class Holding:
 
-    def __init__(self, symbol: str, quantity: float, price: float, up_to_date: bool) -> None:
+    def __init__(self, symbol: str, quantity: float, price: float, up_to_date=False) -> None:
         self.symbol = symbol
         self.quantity = quantity
         self.price = price
