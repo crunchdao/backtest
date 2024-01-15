@@ -9,7 +9,7 @@ from .data.source.base import DataSource
 from .export import BaseExporter, Snapshot
 from .fee import ConstantFeeModel, FeeModel
 from .order import Order, OrderResult
-from .order.provider.base import OrderProvider
+from .order.provider import OrderProvider
 from .price_provider import PriceProvider, SymbolMapper
 
 
@@ -81,9 +81,11 @@ class Backtester:
         if price_date is None:
             price_date = date
 
-        orders_dataframe = self.order_provider.get_orders_dataframe(date, self.account)
-
-        symbols = orders_dataframe["symbol"].tolist()
+        orders = self.order_provider.get_orders(date, self.account)
+        symbols = [
+            order.symbol
+            for order in orders
+        ]
 
         self.price_provider.download_missing(symbols)
 
@@ -92,12 +94,12 @@ class Backtester:
         if self.quantity_in_decimal:
             equity = self.account.equity
 
-            for _, row in orders_dataframe.iterrows():
-                symbol = row["symbol"]
-                percent = row["quantity"]
+            for order in orders:
+                symbol = order.symbol
+                percent = order.quantity
+                price = order.price or self.price_provider.get(price_date, symbol)
 
                 holding_cash_value = equity * percent
-                price = self.price_provider.get(price_date, symbol)
                 if price is not None:
                     quantity = int(holding_cash_value / price)
 
@@ -111,11 +113,11 @@ class Backtester:
                 else:
                     print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
         else:
-            for _, row in orders_dataframe.iterrows():
-                symbol = row["symbol"]
-                quantity = int(row["quantity"])
+            for order in orders:
+                symbol = order.symbol
+                quantity = order.quantity
+                price = order.price or self.price_provider.get(price_date, symbol)
 
-                price = self.price_provider.get(price_date, symbol)
                 if price is not None:
                     result = self.account.order_position(Order(symbol, quantity, price))
                     mass_result.append(result)

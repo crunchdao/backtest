@@ -1,5 +1,6 @@
 import dataclasses
 import enum
+
 from ..utils import is_blank
 
 
@@ -43,6 +44,7 @@ class OrderResult:
     order: Order
     success: bool = False
     fee: float = 0.0
+
 
 @dataclasses.dataclass()
 class CloseResult:

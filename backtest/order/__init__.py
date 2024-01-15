@@ -1,1 +1,2 @@
-from .model import *
+from ._model import *
+from . import provider
