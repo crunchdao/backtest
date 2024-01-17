@@ -24,10 +24,9 @@ class DumpExporter(BaseExporter):
         self.output_file = output_file
         self.auto_delete = auto_delete
         self.auto_override = auto_override
+        
         self.all_dates = set()
-
-        self.dataframe = pandas.DataFrame(
-            columns=["date", "symbol", "quantity", "price", "market_price", "equity"])
+        self.rows = []
 
     @abc.abstractmethod
     def initialize(self) -> None:
@@ -41,7 +40,8 @@ class DumpExporter(BaseExporter):
             can_delete = self.auto_delete
             if not can_delete:
                 can_delete = input(
-                    f"{file}: delete file? [y/N]").lower() == 'y'
+                    f"{file}: delete file? [y/N]"
+                ).lower() == 'y'
 
             if can_delete:
                 os.remove(file)
@@ -53,18 +53,18 @@ class DumpExporter(BaseExporter):
 
         if snapshot.postponned is not None:
             date = snapshot.postponned
-
-        self.dataframe = pandas.concat([
-            self.dataframe,
-            pandas.DataFrame(
-                [
-                    [date, holding.symbol, holding.quantity, holding.price,
-                        holding.market_price, snapshot.equity]
-                    for holding in snapshot.holdings
-                ],
-                columns=self.dataframe.columns,
+        
+        self.rows.extend([
+            (
+                date,
+                holding.symbol,
+                holding.quantity,
+                holding.price,
+                holding.market_price,
+                snapshot.equity
             )
-        ], axis=0)
+            for holding in snapshot.holdings
+        ])
 
     def get_missing_dates(self, dates: typing.Set[datetime.date]):
         return list(filter(
@@ -74,9 +74,17 @@ class DumpExporter(BaseExporter):
 
     @abc.abstractmethod
     def finalize(self) -> None:
+        self.dataframe = pandas.DataFrame(
+            self.rows,
+            columns=["date", "symbol", "quantity", "price", "market_price", "equity"]
+        )
+        
         if not len(self.dataframe):
-            print("[warning] cannot create dump: dataframe is empty",
-                  file=sys.stderr)
+            print(
+                "[warning] cannot create dump: dataframe is empty",
+                file=sys.stderr
+            )
+            
             return
 
         def inverse_sign_if_shorting(row: pandas.Series):
@@ -112,4 +120,6 @@ class DumpExporter(BaseExporter):
                 self.dataframe.to_csv(self.output_file)
             else:
                 print(
-                    f"[warning] {self.output_file} already exists", file=sys.stderr)
+                    f"[warning] {self.output_file} already exists",
+                    file=sys.stderr
+                )

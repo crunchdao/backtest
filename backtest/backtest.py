@@ -8,8 +8,7 @@ from .account import Account
 from .data.source.base import DataSource
 from .export import BaseExporter, Snapshot
 from .fee import ConstantFeeModel, FeeModel
-from .order import Order, OrderResult
-from .order.provider.base import OrderProvider
+from .order import Order, OrderResult, OrderProvider
 from .price_provider import PriceProvider, SymbolMapper
 
 
@@ -81,9 +80,11 @@ class Backtester:
         if price_date is None:
             price_date = date
 
-        orders_dataframe = self.order_provider.get_orders_dataframe(date)
-
-        symbols = orders_dataframe["symbol"].tolist()
+        orders = self.order_provider.get_orders(date, self.account)
+        symbols = [
+            order.symbol
+            for order in orders
+        ]
 
         self.price_provider.download_missing(symbols)
 
@@ -92,12 +93,12 @@ class Backtester:
         if self.quantity_in_decimal:
             equity = self.account.equity
 
-            for _, row in orders_dataframe.iterrows():
-                symbol = row["symbol"]
-                percent = row["quantity"]
+            for order in orders:
+                symbol = order.symbol
+                percent = order.quantity
+                price = order.price or self.price_provider.get(price_date, symbol)
 
                 holding_cash_value = equity * percent
-                price = self.price_provider.get(price_date, symbol)
                 if price is not None:
                     quantity = int(holding_cash_value / price)
 
@@ -111,11 +112,11 @@ class Backtester:
                 else:
                     print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
         else:
-            for _, row in orders_dataframe.iterrows():
-                symbol = row["symbol"]
-                quantity = int(row["quantity"])
+            for order in orders:
+                symbol = order.symbol
+                quantity = order.quantity
+                price = order.price or self.price_provider.get(price_date, symbol)
 
-                price = self.price_provider.get(price_date, symbol)
                 if price is not None:
                     result = self.account.order_position(Order(symbol, quantity, price))
                     mass_result.append(result)
@@ -161,8 +162,12 @@ class Backtester:
         for holding in self.account.holdings:
             price = self.price_provider.get(date, holding.symbol)
 
-            if price is not None:
+            if price is None:
+                print(f"[warning] price not updated: {holding.symbol}: keeping last: {holding.price}", file=sys.stderr)
+                holding.up_to_date = False
+            else:
                 holding.price = price
+                holding.up_to_date = True
 
     def run(self, weekends=False, holidays=False):
         date = self.start
@@ -199,21 +204,24 @@ class Backtester:
                         date += datetime.timedelta(days=1)
                         continue
 
+            self.update_price(date)
+            self.fire_snapshot(date, None)
+            
             for postponned_date in postponned:
                 result = self.order(postponned_date, price_date=date)
                 self.fire_snapshot(date, result, postponned=postponned_date)
 
             postponned.clear()
-
+            
             result = None
             if ordered:
                 result = self.order(date)
-            else:
-                self.update_price(date)
 
             if len(self.rfr.index) > 0:
                 self.account.interest_on_cash(self.rfr[self.rfr.index <= pd.to_datetime(date)].iloc[-1][0])
-            self.fire_snapshot(date, result)
+            
+            if result is not None:
+                self.fire_snapshot(date, result)
 
             date += datetime.timedelta(days=1)
 
@@ -248,6 +256,8 @@ class Backtester:
         
             snapshot.closed_count = result.closed_count
             snapshot.closed_total = result.closed_total
+            
+            snapshot.order_results = result.order_results
 
         for exporter in self.exporters:
             exporter.on_snapshot(snapshot)

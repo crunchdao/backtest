@@ -1,19 +1,19 @@
 import datetime
-
-import abc
-import os
 import sys
+import typing
+
 import pandas
 import requests
-import typing
 import tqdm
 
 from ...utils import ensure_not_blank
 from .base import DataSource
 
+
 def chunks(l, n):
     n = max(1, n)
     return [l[i: i + n] for i in range(0, len(l), n)]
+
 
 class FactsetDataSource(DataSource):
 
@@ -30,8 +30,7 @@ class FactsetDataSource(DataSource):
 
         self.chunk_size = chunk_size
 
-    @abc.abstractmethod
-    def fetch_prices(self, symbols: typing.Set[str], start: datetime.date, end: datetime.date) -> pandas.DataFrame:
+    def fetch_prices(self, symbols, start, end) -> pandas.DataFrame:
         prices = None
 
         for chunk in tqdm.tqdm(chunks(list(symbols), self.chunk_size)):
@@ -50,7 +49,8 @@ class FactsetDataSource(DataSource):
 
             status_code = response.status_code
             if status_code != 200:
-                print(f"got status {status_code}: {response.content}", file=sys.stderr)
+                print(
+                    f"got status {status_code}: {response.content}", file=sys.stderr)
                 continue
 
             dataframe = FactsetDataSource._to_dataframe(response.json())
@@ -64,10 +64,9 @@ class FactsetDataSource(DataSource):
                     on="Date",
                     how="outer"
                 )
-        
+
         return prices
 
-    @abc.abstractmethod
     def is_closeable(self) -> bool:
         return True
 

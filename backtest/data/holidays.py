@@ -1,5 +1,3 @@
-import datetime
-
 import dateutil.parser
 
 holidays = list(map(lambda x: dateutil.parser.parse(x).date(), [

@@ -7,7 +7,8 @@ import typing
 import numpy
 import pandas
 
-from backtest.data.source.base import DataSource
+from .data.source.base import DataSource
+from . import constants
 
 
 class SymbolMapper:
@@ -98,7 +99,7 @@ class PriceProvider:
 
             if prices is None:
                 prices = pandas.DataFrame(
-                    index=pandas.Index([], name="Date"),
+                    index=pandas.Index([], name=constants.DEFAULT_DATE_COLUMN),
                     columns=list(missing_symbols)
                 )
 
@@ -111,14 +112,14 @@ class PriceProvider:
                             first: prices.values
                         }, index=pandas.Index(
                             prices.index,
-                            name="Date"
+                            name=constants.DEFAULT_DATE_COLUMN
                         ))
                     else:
                         prices = pandas.DataFrame({
                             first: numpy.nan
                         }, index=pandas.Index(
                             self.storage.index,
-                            name="Date"
+                            name=constants.DEFAULT_DATE_COLUMN
                         ))
 
             prices.columns = self.mapper.unmaps(prices.columns)
@@ -130,7 +131,7 @@ class PriceProvider:
                 self.storage = pandas.merge(
                     self.storage,
                     prices,
-                    on='Date',
+                    on=constants.DEFAULT_DATE_COLUMN,
                     how="left"
                 )
             else:
@@ -171,7 +172,7 @@ class PriceProvider:
             path = PriceProvider._get_cache_path(start, end)
 
             if os.path.exists(path):
-                dataframe = pandas.read_csv(path, index_col="Date")
+                dataframe = pandas.read_csv(path, index_col=constants.DEFAULT_DATE_COLUMN)
                 dataframe.index = dataframe.index.astype(
                     'datetime64[ns]',
                     copy=False
@@ -186,8 +187,8 @@ class PriceProvider:
             dates.append(numpy.datetime64(date))
             date += datetime.timedelta(days=1)
 
-        dataframe = pandas.DataFrame({"Date": dates, "_": numpy.nan})
-        dataframe.set_index("Date", inplace=True)
+        dataframe = pandas.DataFrame({constants.DEFAULT_DATE_COLUMN: dates, "_": numpy.nan})
+        dataframe.set_index(constants.DEFAULT_DATE_COLUMN, inplace=True)
 
         return dataframe
 

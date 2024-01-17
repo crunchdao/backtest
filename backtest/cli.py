@@ -17,6 +17,7 @@ import watchdog.events
 import readwrite
 
 from .utils import is_number, use_attrs
+from . import constants
 
 dotenv.load_dotenv()
 
@@ -26,12 +27,10 @@ dotenv.load_dotenv()
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 @click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
 @click.option('--offset-before-ending', type=int, default=0, show_default=True, help="Number of day to continue the backtest after every orders.")
-@click.option('--order-file', type=str, default=None, show_default=True, help="Specify an order file to use.")
-@click.option('--order-files', type=str, default=None, show_default=True, help="Specify a directory containing order files to use.")
-@click.option('--order-files-extension', type=click.Choice(['csv', 'parquet', 'json']), default="csv", show_default=True, help="Specify the extension of the order files.")
-@click.option('--single-file-provider-column-date', type=str, default="date", show_default=True, help="Specify the date column name.")
-@click.option('--single-file-provider-column-symbol', type=str, default="symbol", show_default=True, help="Specify the symbol column name.")
-@click.option('--single-file-provider-column-quantity', type=str, default="quantity", show_default=True, help="Specify the quantity column name.")
+@click.option('--order-file', type=click.Path(exists=True, dir_okay=False), required=True, show_default=True, help="Specify an order file to use.")
+@click.option('--order-file-column-date', '--single-file-provider-column-date', type=str, default=constants.DEFAULT_DATE_COLUMN, show_default=True, help="Specify the date column name.")
+@click.option('--order-file-column-symbol', '--single-file-provider-column-symbol', type=str, default=constants.DEFAULT_SYMBOL_COLUMN, show_default=True, help="Specify the symbol column name.")
+@click.option('--order-file-column-quantity', '--single-file-provider-column-quantity', type=str, default=constants.DEFAULT_QUANTITY_COLUMN, show_default=True, help="Specify the quantity column name.")
 @click.option('--initial-cash', type=int, default=100_000, show_default=True, help="Specify an initial cash amount.")
 @click.option('--quantity-mode', type=click.Choice(['percent', 'share']), default="percent", show_default=True, help="Use percent for weight and share for units.")
 @click.option('--auto-close-others', is_flag=True, help="Close the position that hasn't been provided after all of the order.")
@@ -97,8 +96,9 @@ def main(
     offset_before_trading: int,
     offset_before_ending: int,
     order_file,
-    order_files, order_files_extension,
-    single_file_provider_column_date, single_file_provider_column_symbol, single_file_provider_column_quantity,
+    order_file_column_date: str,
+    order_file_column_symbol: str,
+    order_file_column_quantity: str,
     initial_cash, quantity_mode, auto_close_others,
     weekends, holidays, symbol_mapping, no_caching,
     fee_model_value,
@@ -120,43 +120,23 @@ def main(
 
     quantity_in_decimal = quantity_mode == "percent"
 
-    order_provider = None
-    if order_file is not None:
-        from .order.provider import SingleFileOrderProvider
-        order_provider = SingleFileOrderProvider(
-            order_file,
-            offset_before_trading,
-            date_column=single_file_provider_column_date,
-            symbol_column=single_file_provider_column_symbol,
-            quantity_column=single_file_provider_column_quantity
-        )
-    elif order_files is not None:
-        from .order.provider import MultipleFileOrderProvider
-        order_provider = MultipleFileOrderProvider(
-            order_files,
-            offset_before_trading,
-            extension=order_files_extension
-        )
-
-    if order_provider is None:
-        raise ValueError("no order provider available")
+    from .order import DataFrameOrderProvider
+    order_provider = DataFrameOrderProvider(
+        readwrite.read(order_file),
+        offset_before_trading,
+        date_column=order_file_column_date,
+        symbol_column=order_file_column_symbol,
+        quantity_column=order_file_column_quantity
+    )
 
     dates = order_provider.get_dates()
     if not len(dates):
         raise ValueError("no date found")
 
-    if start is not None:
-        start = start.date()
-    else:
-        start = dates[0]
-
-    if end is not None:
-        end = end.date()
-    else:
-        end = dates[-1]
+    start = start.date() if start is not None else dates[0]
+    end = end.date() if end is not None else dates[-1]
 
     end += datetime.timedelta(days=offset_before_ending)
-
     if end > now:
         end = now
 
@@ -188,9 +168,9 @@ def main(
         )
 
     if file_parquet:
-        from .data.source.file import RowParquetFileDataSource
-        file_data_source = RowParquetFileDataSource(
-            path=file_parquet,
+        from .data.source import DataFrameDataSource
+        file_data_source = DataFrameDataSource(
+            path=readwrite.read(file_parquet),
             date_column=file_parquet_column_date,
             symbol_column=file_parquet_column_symbol,
             price_column=file_parquet_column_price
@@ -198,7 +178,9 @@ def main(
 
         if data_source is not None:
             print(
-                f"[info] multiple data source provider, delegating: {data_source.get_name()}", file=sys.stderr)
+                f"[info] multiple data source provider, delegating: {data_source.get_name()}",
+                file=sys.stderr
+            )
 
             from .data.source import DelegateDataSource
             data_source = DelegateDataSource([
@@ -213,7 +195,9 @@ def main(
         data_source = YahooDataSource()
 
         print(
-            f"[warning] no data source selected, defaulting to --yahoo", file=sys.stderr)
+            f"[warning] no data source selected, defaulting to --yahoo",
+            file=sys.stderr
+        )
 
     from .price_provider import SymbolMapper
     symbol_mapper = None if not symbol_mapping else SymbolMapper.from_file(
@@ -390,12 +374,14 @@ def render(
     dataframe_dump = readwrite.read(dataframe_dump_path)
 
     if dataframe_returns is not None:
-        dataframe_returns["date"] = pandas.to_datetime(dataframe_returns["date"])
+        dataframe_returns["date"] = pandas.to_datetime(
+            dataframe_returns["date"])
         dataframe_returns.set_index("date", drop=True, inplace=True)
         dataframe_returns = dataframe_returns["daily_profit_pct"]
 
     if dataframe_benchmark is not None:
-        dataframe_benchmark["date"] = pandas.to_datetime(dataframe_benchmark["date"]).dt.date
+        dataframe_benchmark["date"] = pandas.to_datetime(
+            dataframe_benchmark["date"]).dt.date
         dataframe_benchmark.set_index("date", drop=True, inplace=True)
         dataframe_benchmark = dataframe_benchmark["close"]
 
@@ -405,7 +391,8 @@ def render(
     })
 
     if dataframe_dump is not None:
-        dataframe_dump["date"] = pandas.to_datetime(dataframe_dump["date"]).dt.date
+        dataframe_dump["date"] = pandas.to_datetime(
+            dataframe_dump["date"]).dt.date
 
     dump_exporter = use_attrs({
         "dataframe": dataframe_dump,

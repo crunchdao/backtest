@@ -115,6 +115,10 @@ class PdfExporter(BaseExporter):
                 except:
                     pass
 
+                if name not in df_metrics.index:
+                    print(f"[warning] invalid metric name: `{name}`: not in index: {list(df_metrics.index)}")
+                    return "-"
+
                 value = df_metrics.loc[name, column]
                 if name in NOT_PERCENT:
                     return value

@@ -1,8 +1,7 @@
-import abc
 import datetime
 import typing
-import numpy
 
+import numpy
 import pandas
 
 from .base import DataSource
@@ -13,8 +12,7 @@ class DelegateDataSource(DataSource):
     def __init__(self, delegates: typing.List[DataSource]):
         self.delegates = delegates
 
-    @abc.abstractmethod
-    def fetch_prices(self, symbols: typing.Set[str], start: datetime.date, end: datetime.date) -> pandas.DataFrame:
+    def fetch_prices(self, symbols, start, end):
         prices = None
 
         for delegate in self.delegates:
@@ -43,8 +41,7 @@ class DelegateDataSource(DataSource):
 
         return prices
 
-    @abc.abstractmethod
-    def is_closeable(self) -> bool:
+    def is_closeable(self):
         return True
 
     @staticmethod

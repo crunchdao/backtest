@@ -75,8 +75,7 @@ class CoinMarketCapDataSource(DataSource):
 
         print(f"[info] [datasource] [coinmarketcap] mapping size is {len(self.symbol_to_id_mapping)}", file=sys.stderr)
 
-    @abc.abstractmethod
-    def fetch_prices(self, symbols: typing.Set[str], start: datetime.date, end: datetime.date) -> pandas.DataFrame:
+    def fetch_prices(self, symbols, start, end):
         today = pandas.to_datetime(datetime.date.today())
 
         prices: pandas.DataFrame = None
@@ -121,6 +120,5 @@ class CoinMarketCapDataSource(DataSource):
 
         return prices
 
-    @abc.abstractmethod
-    def is_closeable(self) -> bool:
+    def is_closeable(self):
         return False
