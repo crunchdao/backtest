@@ -1,4 +1,3 @@
-# .github/workflows/app.yaml
 name: PyTest
 on: push
 
