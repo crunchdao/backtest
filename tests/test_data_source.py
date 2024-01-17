@@ -1,6 +1,6 @@
 import unittest
 
-from backtest.data.source import DataSource
+from bktest.data.source import DataSource
 
 
 class DataSourceTest(unittest.TestCase):

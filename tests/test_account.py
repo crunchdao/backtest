@@ -1,25 +1,26 @@
 import typing
 import unittest
-import backtest
 
-aapl = backtest.Order("AAPL", 42, 1)
-aapl_hold = backtest.Order("AAPL", 0, 1)
-aapl_short = backtest.Order("AAPL", -42, 1)
+import bktest
+
+aapl = bktest.Order("AAPL", 42, 1)
+aapl_hold = bktest.Order("AAPL", 0, 1)
+aapl_short = bktest.Order("AAPL", -42, 1)
 cash = 1000000
 rfr = 4.17
 
 class AccountTest(unittest.TestCase):
 
     def test_place_order(self):
-        account = backtest.Account()
+        account = bktest.Account()
 
-        order = backtest.Order(None, 1, 1)
+        order = bktest.Order(None, 1, 1)
         result = account.place_order(order)
         self.assertEqual(order, result.order)
         self.assertFalse(result.success)
         self.assertEqual(0, len(account.holdings))
 
-        aapl = backtest.Order("AAPL", 15, 2)
+        aapl = bktest.Order("AAPL", 15, 2)
         result = account.place_order(aapl)
         self.assertTrue(result.success)
         self.assertEqual(1, len(account.holdings))
@@ -30,13 +31,13 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + aapl.value * 2, account.equity)
 
-        tsla = backtest.Order("TSLA", 15, 2)
+        tsla = bktest.Order("TSLA", 15, 2)
         result = account.place_order(tsla)
         self.assertTrue(result.success)
         self.assertEqual(2, len(account.holdings))
         self.assertEqual(account.cash + tsla.value + aapl.value * 2, account.equity)
 
-        aapl_short = backtest.Order("AAPL", -15, 2)
+        aapl_short = bktest.Order("AAPL", -15, 2)
 
         result = account.place_order(aapl_short)
         self.assertEqual(2, len(account.holdings))
@@ -47,9 +48,9 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(account.cash + tsla.value, account.equity)
 
     def test_order_position(self):
-        account = backtest.Account()
+        account = bktest.Account()
 
-        result = account.order_position(backtest.Order(None, 1, 1))
+        result = account.order_position(bktest.Order(None, 1, 1))
         self.assertFalse(result.success)
 
         result = account.order_position(aapl)
@@ -77,7 +78,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(aapl_short.price, holding.price)
 
     def test_close_position(self):
-        account = backtest.Account()
+        account = bktest.Account()
 
         result = account.close_position(None)
         self.assertFalse(result.success)
@@ -92,7 +93,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(0, result.order.quantity)
         self.assertEqual(42.0, result.order.price)
 
-        aapl = backtest.Order("AAPL", 15, 2)
+        aapl = bktest.Order("AAPL", 15, 2)
         result = account.place_order(aapl)
         self.assertTrue(result.success)
         self.assertEqual(1, len(account.holdings))
@@ -137,7 +138,7 @@ class AccountTest(unittest.TestCase):
 
     def test_interest_on_cash(self):
         cash_after_interest = cash * (1 + max((rfr - 0.17), 0) / 100)
-        account = backtest.Account()
+        account = bktest.Account()
         day = 1
         while day <= 365:
             account.interest_on_cash(rfr)
@@ -146,7 +147,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(cash_after_interest, round(account.cash))
 
     def test_to_relative_order(self):
-        account = backtest.Account()
+        account = bktest.Account()
 
         self.assertEqual(aapl, account.to_relative_order(aapl))
         self.assertEqual(aapl_hold, account.to_relative_order(aapl_hold))
@@ -164,11 +165,11 @@ class AccountTest(unittest.TestCase):
         relative = account.to_relative_order(aapl_short)
         self.assertEqual(aapl_short.quantity * 2, relative.quantity)
 
-        order = backtest.Order("AAPL", 44, 1)
+        order = bktest.Order("AAPL", 44, 1)
         relative = account.to_relative_order(order)
         self.assertEqual(2, relative.quantity)
 
-        account = backtest.Account()
+        account = bktest.Account()
         result = account.place_order(aapl_short)
 
         relative = account.to_relative_order(aapl_short)
@@ -180,16 +181,16 @@ class AccountTest(unittest.TestCase):
         relative = account.to_relative_order(aapl)
         self.assertEqual(aapl.quantity * 2, relative.quantity)
 
-        order = backtest.Order("AAPL", -44, 1)
+        order = bktest.Order("AAPL", -44, 1)
         relative = account.to_relative_order(order)
         self.assertEqual(-2, relative.quantity)
 
     @staticmethod
-    def _create_dummy(add=True) -> typing.Tuple[backtest.Account, backtest.Holding, backtest.Holding]:
-        account = backtest.Account()
+    def _create_dummy(add=True) -> typing.Tuple[bktest.Account, bktest.Holding, bktest.Holding]:
+        account = bktest.Account()
 
-        aapl = backtest.Holding("AAPL", 15, 2)
-        tsla = backtest.Holding("TSLA", 30, 4)
+        aapl = bktest.Holding("AAPL", 15, 2)
+        tsla = bktest.Holding("TSLA", 30, 4)
 
         for holding in [aapl, tsla]:
             account._holdings[holding.symbol] = holding

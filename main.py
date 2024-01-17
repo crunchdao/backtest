@@ -1,3 +1,3 @@
-from backtest import cli
+from bktest import cli
 
 cli.cli()
