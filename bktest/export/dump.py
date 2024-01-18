@@ -1,14 +1,14 @@
 import abc
+import datetime
+import math
 import os
 import sys
-import math
 import typing
-import datetime
-
-from ..utils import signum
 
 import pandas
+import readwrite
 
+from ..utils import signum
 from .base import BaseExporter
 from .model import Snapshot
 
@@ -24,7 +24,7 @@ class DumpExporter(BaseExporter):
         self.output_file = output_file
         self.auto_delete = auto_delete
         self.auto_override = auto_override
-        
+
         self.all_dates = set()
         self.rows = []
 
@@ -53,7 +53,7 @@ class DumpExporter(BaseExporter):
 
         if snapshot.postponned is not None:
             date = snapshot.postponned
-        
+
         self.rows.extend([
             (
                 date,
@@ -78,13 +78,13 @@ class DumpExporter(BaseExporter):
             self.rows,
             columns=["date", "symbol", "quantity", "price", "market_price", "equity"]
         )
-        
+
         if not len(self.dataframe):
             print(
                 "[warning] cannot create dump: dataframe is empty",
                 file=sys.stderr
             )
-            
+
             return
 
         def inverse_sign_if_shorting(row: pandas.Series):
@@ -117,7 +117,7 @@ class DumpExporter(BaseExporter):
 
         if self.output_file is not None:
             if self.auto_override or not os.path.exists(self.output_file):
-                self.dataframe.to_csv(self.output_file)
+                readwrite.write(self.dataframe, self.output_file)
             else:
                 print(
                     f"[warning] {self.output_file} already exists",

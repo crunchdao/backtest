@@ -1,16 +1,17 @@
 import datetime
 
-import backtest
 import pandas
+
+import bktest
 
 end = datetime.date.today()
 start = end - datetime.timedelta(days=38)
 initial_cash = 1_000_000
 quantity_in_decimal = False
 
-data_source = backtest.data.source.YahooDataSource()
+data_source = bktest.data.source.YahooDataSource()
 
-order_provider = backtest.order.provider.DataFrameOrderProvider(pandas.DataFrame([
+order_provider = bktest.order.provider.DataFrameOrderProvider(pandas.DataFrame([
     {"symbol": "AAPL", "quantity": +50, "date": (start + datetime.timedelta(days=10)).isoformat()},
     {"symbol": "TSLA", "quantity": -25, "date": (start + datetime.timedelta(days=10)).isoformat()},
     {"symbol": "AAPL", "quantity": -40, "date": (start + datetime.timedelta(days=20)).isoformat()},
@@ -18,11 +19,11 @@ order_provider = backtest.order.provider.DataFrameOrderProvider(pandas.DataFrame
     {"symbol": "AAPL", "quantity": +50, "date": (start + datetime.timedelta(days=30)).isoformat()},
 ]))
 
-fee_model = backtest.fee.ExpressionFeeModel(
+fee_model = bktest.fee.ExpressionFeeModel(
     "abs(price * quantity) * 0.1"
 )
 
-backtest.Backtester(
+bktest.Backtester(
     start=start,
     end=end,
     order_provider=order_provider,
@@ -31,8 +32,8 @@ backtest.Backtester(
     data_source=data_source,
     fee_model=fee_model,
     exporters=[
-        backtest.export.ConsoleExporter(),
-        backtest.export.DumpExporter(
+        bktest.export.ConsoleExporter(),
+        bktest.export.DumpExporter(
             auto_override=True
         ),
         # backtest.export.QuantStatsExporter(

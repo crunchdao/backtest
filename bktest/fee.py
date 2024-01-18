@@ -1,7 +1,8 @@
 import abc
 
-from .order import Order
 import py_expression_eval
+
+from .order import Order
 
 
 class FeeModel(metaclass=abc.ABCMeta):

@@ -19,3 +19,4 @@ fpdf2==2.7.4
 contexttimer
 watchdog
 fastparquet
+readwrite

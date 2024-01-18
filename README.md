@@ -1,42 +1,39 @@
-# crunchdao-backtest
-
 A small backtesting utility.
 
 ![image](https://user-images.githubusercontent.com/7386242/189368488-b0c30d48-9a1f-4362-9f78-10a451535682.png)
 
 [![PyTest](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml/badge.svg)](https://github.com/crunchdao/backtest/actions/workflows/pytest.yml)
 
-- [crunchdao-backtest](#crunchdao-backtest)
-  - [Install](#install)
-  - [Usage](#usage)
-    - [Options](#options)
-      - [Exporters](#exporters)
-        - [Console](#console)
-        - [Dump](#dump)
-        - [Influx](#influx)
-        - [QuantStats](#quantstats)
-        - [PDF](#pdf)
-        - [Specific Return](#specific-return)
-      - [Data Sources](#data-sources)
-        - [Yahoo](#yahoo)
-        - [CoinMarketCap](#coinmarketcap)
-        - [FactSet](#factset)
-        - [File](#file)
-          - [.parquet](#parquet)
+- [Install](#install)
+- [Usage](#usage)
+  - [Options](#options)
+    - [Exporters](#exporters)
+      - [Console](#console)
+      - [Dump](#dump)
+      - [Influx](#influx)
+      - [QuantStats](#quantstats)
+      - [PDF](#pdf)
+      - [Specific Return](#specific-return)
+    - [Data Sources](#data-sources)
+      - [Yahoo](#yahoo)
+      - [CoinMarketCap](#coinmarketcap)
+      - [FactSet](#factset)
+      - [File](#file)
+        - [.parquet](#parquet)
 
-## Install
+# Install
 
 ```
-python3 -m pip install --upgrade git+https://github.com/crunchdao/backtest
+pip install --upgrade bktest
 ```
 
-## Usage
+# Usage
 
 ```bash
-python3 -m backtest [OPTIONS]
+bktest [OPTIONS]
 ```
 
-### Options
+## Options
 
 | Option | Value | Default | Format | Description |
 | --- | --- | --- | --- | --- |
@@ -61,11 +58,11 @@ python3 -m backtest [OPTIONS]
 | `--rfr-file` | `<directory>` | | `path` | The directory of rfr file to use. The file must contain a column with date information and a column with the rfr information in %. |
 | `--rfr-file-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
 
-#### Exporters
+### Exporters
 
 Multiple exporters can be enabled at one time.
 
-##### Console
+#### Console
 
 The console exporter allows a quick look at the backtest.
 
@@ -77,7 +74,7 @@ The console exporter allows a quick look at the backtest.
 | `--console-hide-skips` | | `false` | | Do not the skipped days. |
 | `--console-text-no-color` | | `false` | | Disable colors in the output. (only if the format is `text`) |
 
-##### Dump
+#### Dump
 
 The dump exporter generate a dump of the portfolio at each day.
 
@@ -87,7 +84,7 @@ The dump exporter generate a dump of the portfolio at each day.
 | `--dump-output-file` | `<file>` | `dump.csv` | `path` | Specify the output file. |
 | `--dump-auto-delete` | | `false` | | Automatically delete the previous dump file if it is present. |
 
-##### Influx
+#### Influx
 
 Export the generated data to an Influx database. <br />
 Making it easier to plot the values using software like Grafana.
@@ -101,7 +98,7 @@ Making it easier to plot the values using software like Grafana.
 | `--influx-measurement` | `<measurement>` | `snapshots` |`string` | Specify the table name to use. |
 | `--influx-key` | `<key>` | `test` | `string` | Specify the unique key to use. **Previous data with the same key will be deleted!** |
 
-##### QuantStats
+#### QuantStats
 
 Generate a tearsheet from the backtest data.
 
@@ -113,7 +110,7 @@ Generate a tearsheet from the backtest data.
 | `--quantstats-benchmark-ticker` | `<ticker>` | `SPY` | `symbol` | Specify the ticker to use as a benchmark in the tearsheet. |
 | `--quantstats-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
 
-##### PDF
+#### PDF
 
 Generate a tearsheet from a custom template.
 
@@ -127,7 +124,7 @@ Generate a tearsheet from a custom template.
 | `--pdf-variable` | `[<key> <value>]` | `[]` | `string` `string` | Add a custom variable. |
 | `--pdf-user-script` | `[<file>]` | `[]` | `path` | Add a user script. |
 
-##### Specific Return
+#### Specific Return
 
 Generate a tearsheet from the specific return backtest data.
 
@@ -141,17 +138,17 @@ Generate a tearsheet from the specific return backtest data.
 | `--specific-return-output-file-csv` | `<file>` | `sr-report.csv` | `path` | Specify the output file containing raw returns. |
 | `--specific-return-auto-delete` | | `false` | | Automatically delete the previous report files if they are present. |
 
-#### Data Sources
+### Data Sources
 
 Only one data source can be used at once.
 
-##### Yahoo
+#### Yahoo
 
 | Option | Value | Default | Format | Description |
 | --- | --- | --- | --- | --- |
 | `--yahoo` | | `false` | | Enable yahoo as the data source. |
 
-##### CoinMarketCap
+#### CoinMarketCap
 
 | Option | Value | Default | Format | Description |
 | --- | --- | --- | --- | --- |
@@ -159,7 +156,7 @@ Only one data source can be used at once.
 | `--coinmarketcap-force-mapping-refresh` | | `false` | | Force a mapping refresh. This is usually only done automatically the first time of using this data source. |
 | `--coinmarketcap-page-size` | `<size>` | `10_000` | `number` | Specify the page size while building the mapping. |
 
-##### FactSet
+#### FactSet
 
 | Option | Value | Default | Format | Description |
 | --- | --- | --- | --- | --- |
@@ -167,13 +164,13 @@ Only one data source can be used at once.
 | `--factset-username-serial` | | `$FACTSET_USERNAME_SERIAL` | | Specify the factset's username serial to use. |
 | `--factset-api-key` | | `$FACTSET_API_KEY` | | Specify the factset's api key to use. |
 
-##### File
+#### File
 
 Use a static file as a price data source.
 
 If another data source is specified, files sources will be used first in a delegated data source. Meaning that if the data are not available in the file, the next data source will be used.
 
-###### .parquet
+##### .parquet
 
 | Option | Value | Default | Format | Description |
 | --- | --- | --- | --- | --- |
