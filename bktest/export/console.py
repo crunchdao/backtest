@@ -9,22 +9,22 @@ from .model import Snapshot
 
 
 class ConsoleDelegate(Exporter):
-    
+
     def __init__(self, file):
         self.file = file
-    
+
     def _print(self, content):
         print(content, file=self.file)
 
 
 class TextConsoleDelegate(ConsoleDelegate):
-    
+
     def __init__(self, file, no_color=False, **kwargs):
         super().__init__(file)
-        
+
         self.no_color = no_color
         self.days_of_the_week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        
+
         if no_color:
             self.color_reset = ""
             self.color_red = ""
@@ -32,7 +32,7 @@ class TextConsoleDelegate(ConsoleDelegate):
             self.color_green = ""
             self.color_yellow = ""
         else:
-            from colorama import Fore, Back, Style
+            from colorama import Back, Fore, Style
             self.color_reset = Style.RESET_ALL
             self.color_red = Fore.RED
             self.color_magenta = Fore.MAGENTA
@@ -42,12 +42,12 @@ class TextConsoleDelegate(ConsoleDelegate):
     @abc.abstractmethod
     def on_skip(self, date: datetime.date, reason: str, ordered: bool) -> None:
         day = self._day_of_the_week(date)
-        
+
         line = f"{date} ({day})   {self.color_magenta}{reason}{self.color_reset}"
-        
+
         if ordered:
             line += f"   {self.color_red}post-ponned order{self.color_reset}"
-        
+
         self._print(line)
 
     @abc.abstractmethod
@@ -56,42 +56,42 @@ class TextConsoleDelegate(ConsoleDelegate):
         day = self._day_of_the_week(date)
         ordered_string = self._ordered_to_string(snapshot)
         equity = snapshot.equity
-        
+
         ordered_color = self.color_green if snapshot.ordered else self.color_yellow
-        
+
         line = f"{date} ({day})   {ordered_color}{ordered_string:20}{self.color_reset}    [equity={equity:12.4f}]"
-        
+
         if snapshot.ordered:
             # cash = snapshot.cash
             # line += f"    cash={cash:12.4f}"
-            
+
             holding_count = snapshot.holding_count
             line += f"    [portfolio={holding_count:4}]"
-        
+
             total_fees = snapshot.total_fees
             line += f"    [fee={total_fees:12.4f}]"
-            
+
             success_count = snapshot.success_count
             failed_count = snapshot.failed_count
             total = success_count + failed_count
             line += f"    [orders={success_count}/{total}]"
-            
+
             if snapshot.closed_count is not None:
                 closed_count = snapshot.closed_count
                 closed_total = snapshot.closed_total
                 line += f"    [closed={closed_count}/{closed_total}]"
-        
+
         self._print(line)
 
     def _ordered_to_string(self, snapshot: Snapshot):
         if snapshot.ordered:
             out = "ordered"
-            
+
             if snapshot.postponned is not None:
                 out += f" ({snapshot.postponned})"
-            
+
             return out
-        
+
         return "price updated"
 
     def _day_of_the_week(self, date: datetime.date):
@@ -99,12 +99,12 @@ class TextConsoleDelegate(ConsoleDelegate):
 
 
 class JsonConsoleDelegate(ConsoleDelegate):
-    
+
     def __init__(self, file, **kwargs):
         super().__init__(file)
 
         self.first = False
-    
+
     @abc.abstractmethod
     def initialize(self) -> None:
         self._print("[")
@@ -112,7 +112,7 @@ class JsonConsoleDelegate(ConsoleDelegate):
     @abc.abstractmethod
     def on_skip(self, date: datetime.date, reason: str, ordered: bool) -> None:
         self._coma()
-        
+
         self._print_json({
             "event": "SKIP",
             "date": str(date),
@@ -123,7 +123,7 @@ class JsonConsoleDelegate(ConsoleDelegate):
     @abc.abstractmethod
     def on_snapshot(self, snapshot: Snapshot) -> None:
         self._coma()
-        
+
         self._print_json({
             "event": "SNAPSHOT",
             "date": str(snapshot.date),
@@ -143,14 +143,14 @@ class JsonConsoleDelegate(ConsoleDelegate):
     @abc.abstractmethod
     def finalize(self) -> None:
         self._print("]")
-    
+
     def _coma(self):
         if not self.first:
             self.first = True
             print(" ", end="", file=self.file)
         else:
             print(",", end="", file=self.file)
-    
+
     def _print_json(self, object: dict):
         self._print(json.dumps(object))
 
@@ -162,7 +162,7 @@ class ConsoleExporter(Exporter):
             "text": TextConsoleDelegate,
             "json": JsonConsoleDelegate
         }[format](file, **kwargs)
-        
+
         self.hide_skips = hide_skips
 
     @abc.abstractmethod
@@ -173,7 +173,7 @@ class ConsoleExporter(Exporter):
     def on_skip(self, date: datetime.date, reason: str, ordered: bool) -> None:
         if self.hide_skips:
             return
-        
+
         self.delegate.on_skip(date, reason, ordered)
 
     @abc.abstractmethod
@@ -183,4 +183,3 @@ class ConsoleExporter(Exporter):
     @abc.abstractmethod
     def finalize(self) -> None:
         self.delegate.finalize()
-    

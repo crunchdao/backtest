@@ -118,7 +118,3 @@ class Account:
     def _handle_cash(self, order: Order, fee: float):
         self.cash -= fee
         self.cash -= order.value
-
-    def interest_on_cash(self, rfr):
-        '''Interest income on cash from short sale - amount borrowed on the long position'''
-        self.cash += self.cash * ((((max((rfr - 0.17), 0) / 100) + 1) ** (1/365)) - 1)

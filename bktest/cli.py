@@ -83,8 +83,6 @@ dotenv.load_dotenv()
 @click.option('--file-parquet-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--file-parquet-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
 @click.option('--file-parquet-column-price', type=str, default="price", show_default=True, help="Specify the column name containing the prices.")
-@click.option('--rfr-file', type=str, help="Specify the path of the risk free rate file")
-@click.option('--rfr-file-column-date', type=str, default="date", help="Specify the date column of the risk free rate file")
 @click.pass_context
 def cli(ctx: click.Context, **kwargs):
     if ctx.invoked_subcommand is None:
@@ -112,7 +110,6 @@ def main(
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
     factset: bool, factset_username_serial: str, factset_api_key: str,
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
-    rfr_file: str, rfr_file_column_date: str
 ):
     logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
@@ -170,7 +167,7 @@ def main(
     if file_parquet:
         from .data.source import DataFrameDataSource
         file_data_source = DataFrameDataSource(
-            path=readwrite.read(file_parquet),
+            dataframe=readwrite.read(file_parquet),
             date_column=file_parquet_column_date,
             symbol_column=file_parquet_column_symbol,
             price_column=file_parquet_column_price
@@ -296,14 +293,8 @@ def main(
         print(
             f"[warning] no exporter selected, defaulting to --console", file=sys.stderr)
 
-    if rfr_file:
-        rfr = pandas.read_parquet(rfr_file)
-        rfr = rfr.set_index(rfr_file_column_date)
-    else:
-        rfr = pandas.Series(dtype="float64")
-
-    from .backtest import Backtester
-    Backtester(
+    from .backtest import SimpleBacktester
+    SimpleBacktester(
         start=start,
         end=end,
         order_provider=order_provider,
@@ -311,15 +302,13 @@ def main(
         quantity_in_decimal=quantity_in_decimal,
         auto_close_others=auto_close_others,
         data_source=data_source,
-        rfr=rfr,
         mapper=symbol_mapper,
         exporters=exporters,
         fee_model=fee_model,
         caching=not no_caching,
-    ).run(
         weekends=weekends,
         holidays=holidays
-    )
+    ).run()
 
 
 @cli.group(name="template")

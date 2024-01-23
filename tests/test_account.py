@@ -136,16 +136,6 @@ class AccountTest(unittest.TestCase):
         
         self.assertIsNone(account.find_holding("CRUNCH"))
 
-    def test_interest_on_cash(self):
-        cash_after_interest = cash * (1 + max((rfr - 0.17), 0) / 100)
-        account = bktest.Account()
-        day = 1
-        while day <= 365:
-            account.interest_on_cash(rfr)
-            day +=1
-
-        self.assertEqual(cash_after_interest, round(account.cash))
-
     def test_to_relative_order(self):
         account = bktest.Account()
 
