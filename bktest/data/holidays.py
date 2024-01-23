@@ -1,6 +1,6 @@
 import dateutil.parser
 
-holidays = list(map(lambda x: dateutil.parser.parse(x).date(), [
+holidays = set(map(lambda x: dateutil.parser.parse(x).date(), [
     # from https://github.com/QuantConnect/Lean/blob/master/Data/market-hours/market-hours-database.json
     "1998-01-01",
     "1999-01-01",
@@ -242,5 +242,7 @@ holidays = list(map(lambda x: dateutil.parser.parse(x).date(), [
     "2020-12-25",
     "2021-12-24",
     "2022-12-26",
-    "2023-12-25"
+    "2023-12-25",
+    "2024-01-01",
+    "2024-12-25"
 ]))
