@@ -7,11 +7,11 @@ import pandas
 import quantstats
 import seaborn
 
-from .base import BaseExporter
+from .base import Exporter
 from .model import Snapshot
 
 
-class QuantStatsExporter(BaseExporter):
+class QuantStatsExporter(Exporter):
 
     def __init__(
         self,

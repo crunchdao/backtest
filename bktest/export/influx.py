@@ -4,11 +4,11 @@ import typing
 
 import influxdb
 
-from .base import BaseExporter
+from .base import Exporter
 from .model import Snapshot
 
 
-class InfluxExporter(BaseExporter):
+class InfluxExporter(Exporter):
 
     def __init__(
         self,

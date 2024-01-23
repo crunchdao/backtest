@@ -1,8 +1,10 @@
-from .base import BaseExporter
-from .influx import InfluxExporter
+from .base import Exporter
 from .console import ConsoleExporter
-from .quants import QuantStatsExporter
 from .dump import DumpExporter
-from .specific_return import SpecificReturnExporter
-from .pdf import PdfExporter
+from .influx import InfluxExporter
 from .model import Snapshot
+from .pdf import PdfExporter
+from .quants import QuantStatsExporter
+from .specific_return import SpecificReturnExporter
+
+BaseExporter = Exporter

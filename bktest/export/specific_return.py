@@ -6,14 +6,14 @@ import typing
 import pandas
 import quantstats
 
-from .base import BaseExporter
+from .base import Exporter
 from .model import Snapshot
 
 def _expect_column(dataframe: pandas.DataFrame, name: str):
     if name not in dataframe.columns:
         raise ValueError(f"column {name} not found")
 
-class SpecificReturnExporter(BaseExporter):
+class SpecificReturnExporter(Exporter):
 
     def __init__(
         self,

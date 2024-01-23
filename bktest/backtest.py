@@ -6,7 +6,7 @@ import pandas as pd
 
 from .account import Account
 from .data.source.base import DataSource
-from .export import BaseExporter, Snapshot
+from .export import Exporter, Snapshot
 from .fee import ConstantFeeModel, FeeModel
 from .order import Order, OrderResult, OrderProvider
 from .price_provider import PriceProvider, SymbolMapper
@@ -56,7 +56,7 @@ class Backtester:
         data_source: DataSource,
         rfr,
         auto_close_others: bool = True,
-        exporters: typing.List[BaseExporter] = [],
+        exporters: typing.List[Exporter] = [],
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
         caching=True,

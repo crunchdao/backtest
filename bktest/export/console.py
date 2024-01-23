@@ -4,11 +4,11 @@ import json
 import sys
 import typing
 
-from .base import BaseExporter
+from .base import Exporter
 from .model import Snapshot
 
 
-class ConsoleDelegate(BaseExporter):
+class ConsoleDelegate(Exporter):
     
     def __init__(self, file):
         self.file = file
@@ -155,7 +155,7 @@ class JsonConsoleDelegate(ConsoleDelegate):
         self._print(json.dumps(object))
 
 
-class ConsoleExporter(BaseExporter):
+class ConsoleExporter(Exporter):
 
     def __init__(self, format="text", file=sys.stdout, hide_skips=False, **kwargs):
         self.delegate = {
