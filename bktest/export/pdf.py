@@ -6,7 +6,7 @@ import quantstats
 import slugify
 import pandas
 
-from .base import BaseExporter
+from .base import Exporter
 from .quants import QuantStatsExporter
 from .dump import DumpExporter
 from ..template import Template, PdfTemplateRenderer
@@ -15,7 +15,7 @@ from ..template import Template, PdfTemplateRenderer
 _EMPTY_DICT = dict()
 
 
-class PdfExporter(BaseExporter):
+class PdfExporter(Exporter):
 
     def __init__(
         self,

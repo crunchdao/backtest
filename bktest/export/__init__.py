@@ -1,4 +1,4 @@
-from .base import BaseExporter
+from .base import Exporter
 from .influx import InfluxExporter
 from .console import ConsoleExporter
 from .quants import QuantStatsExporter

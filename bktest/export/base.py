@@ -5,7 +5,7 @@ import typing
 from .model import Snapshot
 
 
-class BaseExporter:
+class Exporter:
 
     @abc.abstractmethod
     def initialize(self) -> None:

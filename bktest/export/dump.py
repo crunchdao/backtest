@@ -9,7 +9,7 @@ import pandas
 import readwrite
 
 from ..utils import signum
-from .base import BaseExporter
+from .base import Exporter
 from .model import Snapshot
 
 
@@ -24,7 +24,7 @@ _COLUMNS = [
 ]
 
 
-class DumpExporter(BaseExporter):
+class DumpExporter(Exporter):
 
     def __init__(
         self,
