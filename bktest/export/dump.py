@@ -13,6 +13,17 @@ from .base import BaseExporter
 from .model import Snapshot
 
 
+_COLUMNS = [
+    "date",
+    "symbol",
+    "quantity",
+    "price",
+    "market_price",
+    "equity",
+    "ordered"
+]
+
+
 class DumpExporter(BaseExporter):
 
     def __init__(
@@ -54,6 +65,11 @@ class DumpExporter(BaseExporter):
         if snapshot.postponned is not None:
             date = snapshot.postponned
 
+        common = [
+            snapshot.equity,
+            snapshot.ordered,
+        ]
+
         self.rows.extend([
             (
                 date,
@@ -61,7 +77,7 @@ class DumpExporter(BaseExporter):
                 holding.quantity,
                 holding.price,
                 holding.market_price,
-                snapshot.equity
+                *common
             )
             for holding in snapshot.holdings
         ])
@@ -76,7 +92,7 @@ class DumpExporter(BaseExporter):
     def finalize(self) -> None:
         self.dataframe = pandas.DataFrame(
             self.rows,
-            columns=["date", "symbol", "quantity", "price", "market_price", "equity"]
+            columns=_COLUMNS
         )
 
         if not len(self.dataframe):
@@ -97,10 +113,10 @@ class DumpExporter(BaseExporter):
             missing = self.get_missing_dates(group["date"].unique())
             holes = pandas.DataFrame(
                 [
-                    [date, group.name, 0, math.nan, math.nan, math.nan]
+                    [date, group.name, 0, math.nan, math.nan, math.nan, math.nan]
                     for date in missing
                 ],
-                columns=["date", "symbol", "quantity", "price", "market_price", "equity"],
+                columns=_COLUMNS,
             )
 
             group = pandas.concat([group, holes])
