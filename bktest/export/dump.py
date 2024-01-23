@@ -67,7 +67,7 @@ class DumpExporter(Exporter):
 
         common = [
             snapshot.equity,
-            snapshot.ordered,
+            float(snapshot.ordered),
         ]
 
         self.rows.extend([
