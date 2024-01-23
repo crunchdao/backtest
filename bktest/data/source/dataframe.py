@@ -52,7 +52,8 @@ class DataFrameDataSource(DataSource):
         else:
             prices = pandas.DataFrame(
                 index=pandas.DatetimeIndex(
-                    data=pandas.date_range(start=start, end=end)
+                    data=pandas.date_range(start=start, end=end),
+                    name=constants.DEFAULT_DATE_COLUMN
                 )
             )
 
