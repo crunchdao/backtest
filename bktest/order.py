@@ -23,7 +23,7 @@ class Order:
 
     symbol: str
     quantity: int
-    price: float
+    price: float = None
 
     @property
     def value(self) -> float:
@@ -66,22 +66,30 @@ class OrderProvider(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_dates(self) -> typing.List[datetime.date]:
-        return []
+        pass
 
     @abc.abstractmethod
-    def get_orders(self, date: datetime.date, account: "Account") -> typing.List[Order]:
-        return []
+    def get_orders(
+        self,
+        date: datetime.date,
+        account: "Account"
+    ) -> typing.List[Order]:
+        pass
 
 
 class ParallelOrderProvider(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_dates(self) -> typing.List[datetime.date]:
-        return []
+        pass
 
     @abc.abstractmethod
-    def get_orders_list(self, date: datetime.date, account: "Account") -> typing.List[typing.List[Order]]:
-        return []
+    def get_orders_list(
+        self,
+        date: datetime.date,
+        accounts: typing.List["Account"]
+    ) -> typing.List[typing.List[Order]]:
+        pass
 
 
 class DataFrameOrderProvider(OrderProvider):
@@ -89,7 +97,7 @@ class DataFrameOrderProvider(OrderProvider):
     def __init__(
         self,
         dataframe: pandas.DataFrame,
-        offset_before_trading: int,
+        offset_before_trading: int = 0,
         date_column=constants.DEFAULT_DATE_COLUMN,
         symbol_column=constants.DEFAULT_SYMBOL_COLUMN,
         quantity_column=constants.DEFAULT_QUANTITY_COLUMN

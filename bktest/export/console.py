@@ -19,10 +19,11 @@ class ConsoleDelegate(Exporter):
 
 class TextConsoleDelegate(ConsoleDelegate):
 
-    def __init__(self, file, no_color=False, **kwargs):
+    def __init__(self, file, no_color=False, prefix="", **kwargs):
         super().__init__(file)
 
         self.no_color = no_color
+        self.prefix = prefix
         self.days_of_the_week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
         if no_color:
@@ -96,6 +97,12 @@ class TextConsoleDelegate(ConsoleDelegate):
 
     def _day_of_the_week(self, date: datetime.date):
         return self.days_of_the_week[date.weekday()]
+
+    def _print(self, content):
+        if self.prefix:
+            content = self.prefix + " " + content
+        
+        super()._print(content)
 
 
 class JsonConsoleDelegate(ConsoleDelegate):

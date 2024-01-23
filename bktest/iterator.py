@@ -1,7 +1,16 @@
 import datetime
 import typing
+import dataclasses
 
 from .export import ExporterCollection
+
+
+@dataclasses.dataclass()
+class Postpone:
+    
+    date: datetime.date
+    reason: str
+    ordered: bool
 
 
 class DateIterator:
@@ -10,7 +19,6 @@ class DateIterator:
         self,
         start: datetime.date,
         end: datetime.date,
-        exporters: ExporterCollection,
         closable: bool,
         order_dates: typing.List[datetime.date],
         allow_weekends=False,
@@ -18,7 +26,6 @@ class DateIterator:
     ):
         self.start = start
         self.end = end
-        self.exporters = exporters
         self.closable = closable
         self.order_dates = order_dates
         self.allow_weekends = allow_weekends
@@ -41,15 +48,17 @@ class DateIterator:
         self,
         date: datetime.date,
         ordered: bool,
-        postponned: list
+        postponned: typing.List[Postpone]
     ) -> bool:
         if self.allow_weekends or date.weekday() <= 4:
             return False
 
-        self.exporters.fire_skip(date, "weekend", ordered)
-
         if ordered:
-            postponned.append(date)
+            postponned.append(Postpone(
+                date,
+                "weekend",
+                ordered
+            ))
 
         return True
 
@@ -57,22 +66,24 @@ class DateIterator:
         self,
         date: datetime.date,
         ordered: bool,
-        postponned: list
+        postponned: typing.List[Postpone]
     ) -> bool:
         from .data.holidays import holidays as days
         
         if self.allow_holidays or date not in days:
             return False
 
-        self.exporters.fire_skip(date, "holiday", ordered)
-
         if ordered:
-            postponned.append(date)
+            postponned.append(Postpone(
+                date,
+                "holiday",
+                ordered
+            ))
 
         return True
 
     def __next__(self):
-        postponned = []
+        postponned: typing.List[Postpone] = []
 
         while self._date <= self.end:
             date = self._date
