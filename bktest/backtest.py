@@ -33,7 +33,7 @@ class _Runner:
         orders: typing.List[Order],
         price_date=None,
     ) -> OrderResultCollection:
-        mass_result = OrderResultCollection()
+        results = OrderResultCollection()
 
         if price_date is None:
             price_date = date
@@ -60,7 +60,7 @@ class _Runner:
                     quantity = int(holding_cash_value / price)
 
                     result = self.account.order_position(Order(symbol, quantity, price))
-                    mass_result.append(result)
+                    results.append(result)
 
                     if result.success:
                         others.discard(symbol)
@@ -76,7 +76,7 @@ class _Runner:
 
                 if price is not None:
                     result = self.account.order_position(Order(symbol, quantity, price))
-                    mass_result.append(result)
+                    results.append(result)
 
                     if result.success:
                         others.discard(symbol)
@@ -86,15 +86,15 @@ class _Runner:
                     print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
 
         if self.auto_close_others:
-            self._close_all(others, date, mass_result)
+            self._close_all(others, date, results)
 
-        return mass_result
+        return results
 
     def _close_all(
         self,
         symbols: typing.Iterable[str],
         date: datetime.date,
-        mass_result: OrderResultCollection
+        results: OrderResultCollection
     ):
         closed, total = 0, 0
 
@@ -105,7 +105,7 @@ class _Runner:
             if result.missing:
                 continue
 
-            mass_result.append(result)
+            results.append(result)
 
             if result.success:
                 closed += 1
@@ -114,8 +114,8 @@ class _Runner:
 
             total += 1
 
-        mass_result.closed_count = closed
-        mass_result.closed_total = total
+        results.closed_count = closed
+        results.closed_total = total
 
         return closed, total
     
