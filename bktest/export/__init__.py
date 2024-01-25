@@ -1,4 +1,4 @@
-from .base import Exporter
+from .base import Exporter, ExporterCollection
 from .console import ConsoleExporter
 from .dump import DumpExporter
 from .influx import InfluxExporter

@@ -23,7 +23,7 @@ class Order:
 
     symbol: str
     quantity: int
-    price: float
+    price: float = None
 
     @property
     def value(self) -> float:
@@ -66,11 +66,30 @@ class OrderProvider(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_dates(self) -> typing.List[datetime.date]:
-        return []
+        pass
 
     @abc.abstractmethod
-    def get_orders(self, date: datetime.date, account: "Account") -> typing.List[Order]:
-        return []
+    def get_orders(
+        self,
+        date: datetime.date,
+        account: "Account"
+    ) -> typing.List[Order]:
+        pass
+
+
+class ParallelOrderProvider(metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def get_dates(self) -> typing.List[datetime.date]:
+        pass
+
+    @abc.abstractmethod
+    def get_orders_list(
+        self,
+        date: datetime.date,
+        accounts: typing.List["Account"]
+    ) -> typing.List[typing.List[Order]]:
+        pass
 
 
 class DataFrameOrderProvider(OrderProvider):
@@ -78,7 +97,7 @@ class DataFrameOrderProvider(OrderProvider):
     def __init__(
         self,
         dataframe: pandas.DataFrame,
-        offset_before_trading: int,
+        offset_before_trading: int = 0,
         date_column=constants.DEFAULT_DATE_COLUMN,
         symbol_column=constants.DEFAULT_SYMBOL_COLUMN,
         quantity_column=constants.DEFAULT_QUANTITY_COLUMN
@@ -140,3 +159,35 @@ class DataFrameOrderProvider(OrderProvider):
             )
             for _, row in dataframe.iterrows()
         ]
+
+
+@dataclasses.dataclass()
+class OrderResultCollection:
+
+    elements: list = dataclasses.field(default_factory=list)
+    closed_count: int = None
+    closed_total: int = None
+
+    @property
+    def total_fees(self):
+        return sum(map(lambda x: x.fee, self.elements), 0.0)
+
+    @property
+    def success_count(self):
+        return self._count_by_success(True)
+
+    @property
+    def failed_count(self):
+        return self._count_by_success(False)
+
+    def append(self, result: OrderResult):
+        return self.elements.append(result)
+
+    def _count_by_success(self, success_value):
+        count = 0
+
+        for result in self.elements:
+            if result.success == success_value:
+                count += 1
+
+        return count

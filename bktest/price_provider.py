@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import typing
+import warnings
 
 import numpy
 import pandas
@@ -128,12 +129,15 @@ class PriceProvider:
                     print(f"[warning] {column} does not have a price", file=sys.stderr)
 
             if self.storage is not None:
-                self.storage = pandas.merge(
-                    self.storage,
-                    prices,
-                    on=constants.DEFAULT_DATE_COLUMN,
-                    how="left"
-                )
+                with warnings.catch_warnings():
+                    warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
+
+                    self.storage = pandas.merge(
+                        self.storage,
+                        prices,
+                        on=constants.DEFAULT_DATE_COLUMN,
+                        how="left"
+                    )
             else:
                 self.storage = prices
 
@@ -158,8 +162,7 @@ class PriceProvider:
 
         path = PriceProvider._get_cache_path(self.start, self.end)
 
-        parent = os.path.dirname(path)
-        os.makedirs(parent, exist_ok=True)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
 
         self.storage.to_csv(path)
 

@@ -39,10 +39,10 @@ class UtilsTest(unittest.TestCase):
         def case(value: str, property: str, message: str):
             with self.assertRaises(ValueError) as context:
                 bktest.utils.ensure_not_blank(value, property)
-            
+
             exception = context.exception
             self.assertEquals(message, str(exception))
-        
+
         case(None, None, "must not be blank")
         case(None, "dummy", "dummy must not be blank")
         case("", None, "must not be blank")
