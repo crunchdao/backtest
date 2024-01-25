@@ -11,7 +11,7 @@ from .price_provider import PriceProvider, SymbolMapper
 from .iterator import DateIterator
 
 
-class _Runner:
+class _Pod:
 
     def __init__(
         self,
@@ -158,8 +158,8 @@ class ParallelBacktester:
 
         self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching)
 
-        self.runners = [
-            _Runner(
+        self.pods = [
+            _Pod(
                 quantity_in_decimal,
                 auto_close_others,
                 self.price_provider,
@@ -170,8 +170,8 @@ class ParallelBacktester:
         ]
         
         self.accounts = [
-            runner.account
-            for runner in self.runners
+            pod.account
+            for pod in self.pods
         ]
 
         self.date_iterator = DateIterator(
@@ -186,8 +186,8 @@ class ParallelBacktester:
     def update_price(self, date):
         cache = {}
 
-        for runner in self.runners:
-            for holding in runner.account.holdings:
+        for pod in self.pods:
+            for holding in pod.account.holdings:
                 symbol = holding.symbol
                 price = cache.get(symbol)
                 if price is None:
@@ -200,7 +200,7 @@ class ParallelBacktester:
                     holding.price = price
                     holding.up_to_date = True
 
-            runner.fire_snapshot(date, None)
+            pod.fire_snapshot(date, None)
 
     def order(
         self,
@@ -209,17 +209,17 @@ class ParallelBacktester:
     ):
         orderss = self.order_provider.get_orders_list(date, self.accounts)
 
-        for runner, orders in zip(self.runners, orderss):
-            result = runner.order(
+        for pod, orders in zip(self.pods, orderss):
+            result = pod.order(
                 date,
                 orders,
                 price_date
             )
 
             if price_date:
-                runner.fire_snapshot(price_date, result, postponned=date)
+                pod.fire_snapshot(price_date, result, postponned=date)
             else:
-                runner.fire_snapshot(date, result)
+                pod.fire_snapshot(date, result)
 
         return result
 
@@ -228,8 +228,8 @@ class ParallelBacktester:
 
         for date, ordered, postponned in self.date_iterator:
             for postpone in postponned:
-                for runner in self.runners:
-                    runner.exporters.fire_skip(postpone.date, postpone.reason, True)
+                for pod in self.pods:
+                    pod.exporters.fire_skip(postpone.date, postpone.reason, True)
 
                 self.order(postpone.date, price_date=date)
 
@@ -242,12 +242,12 @@ class ParallelBacktester:
         self._fire_finalize()
 
     def _fire_initialize(self):
-        for runner in self.runners:
-            runner.exporters.fire_initialize()
+        for pod in self.pods:
+            pod.exporters.fire_initialize()
 
     def _fire_finalize(self):
-        for runner in self.runners:
-            runner.exporters.fire_finalize()
+        for pod in self.pods:
+            pod.exporters.fire_finalize()
 
 
 class SimpleBacktester:
@@ -274,7 +274,7 @@ class SimpleBacktester:
 
         self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching)
 
-        self.runner = _Runner(
+        self.pod = _Pod(
             quantity_in_decimal,
             auto_close_others,
             self.price_provider,
@@ -309,7 +309,7 @@ class SimpleBacktester:
     ):
         orders = self.order_provider.get_orders(date, self.account)
 
-        return self.runner.order(
+        return self.pod.order(
             date,
             orders,
             price_date
@@ -339,8 +339,8 @@ class SimpleBacktester:
 
     @property
     def account(self):
-        return self.runner.account
+        return self.pod.account
 
     @property
     def exporters(self):
-        return self.runner.exporters
+        return self.pod.exporters
