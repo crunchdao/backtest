@@ -63,9 +63,6 @@ class TextConsoleDelegate(ConsoleDelegate):
         line = f"{date} ({day})   {ordered_color}{ordered_string:20}{self.color_reset}    [equity={equity:12.4f}]"
 
         if snapshot.ordered:
-            # cash = snapshot.cash
-            # line += f"    cash={cash:12.4f}"
-
             holding_count = snapshot.holding_count
             line += f"    [portfolio={holding_count:4}]"
 
