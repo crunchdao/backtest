@@ -2,15 +2,12 @@ import datetime
 import typing
 import dataclasses
 
-from .export import ExporterCollection
-
 
 @dataclasses.dataclass()
 class Postpone:
     
     date: datetime.date
     reason: str
-    ordered: bool
 
 
 class DateIterator:
@@ -56,8 +53,7 @@ class DateIterator:
         if ordered:
             postponned.append(Postpone(
                 date,
-                "weekend",
-                ordered
+                "weekend"
             ))
 
         return True
@@ -76,8 +72,7 @@ class DateIterator:
         if ordered:
             postponned.append(Postpone(
                 date,
-                "holiday",
-                ordered
+                "holiday"
             ))
 
         return True
