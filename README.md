@@ -10,7 +10,6 @@ A small backtesting utility.
     - [Exporters](#exporters)
       - [Console](#console)
       - [Dump](#dump)
-      - [Influx](#influx)
       - [QuantStats](#quantstats)
       - [PDF](#pdf)
       - [Specific Return](#specific-return)
@@ -83,20 +82,6 @@ The dump exporter generate a dump of the portfolio at each day.
 | `--dump` | | `false` | | Enable the dump exporter. |
 | `--dump-output-file` | `<file>` | `dump.csv` | `path` | Specify the output file. |
 | `--dump-auto-delete` | | `false` | | Automatically delete the previous dump file if it is present. |
-
-#### Influx
-
-Export the generated data to an Influx database. <br />
-Making it easier to plot the values using software like Grafana.
-
-| Option | Value | Default | Format | Description |
-| --- | --- | --- | --- | --- |
-| `--influx` | | `false` | | Enable the influx exporter. |
-| `--influx-host` | `<host>` | `localhost` | `string` | Specify the remote influx address. |
-| `--influx-port` | `<port>` | `8086` | `number` | Specify the remote influx port. |
-| `--influx-database` | `<database>` | `backtest` | `string` | Specify the influx database to use. |
-| `--influx-measurement` | `<measurement>` | `snapshots` |`string` | Specify the table name to use. |
-| `--influx-key` | `<key>` | `test` | `string` | Specify the unique key to use. **Previous data with the same key will be deleted!** |
 
 #### QuantStats
 

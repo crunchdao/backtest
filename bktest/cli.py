@@ -56,13 +56,6 @@ dotenv.load_dotenv()
 @click.option('--dump-output-file', type=str, default="dump.csv", show_default=True, help="Specify the output file.")
 @click.option('--dump-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
 #
-@click.option('--influx', is_flag=True, help="Enable the influx exporter.")
-@click.option('--influx-host', type=str, default="localhost", show_default=True, help="Influx's database host.")
-@click.option('--influx-port', type=int, default=8086, show_default=True, help="Influx's database port.")
-@click.option('--influx-database', type=str, default="backtest", show_default=True, help="Influx's database name.")
-@click.option('--influx-measurement', type=str, default="snapshots", show_default=True, help="Influx's database table.")
-@click.option('--influx-key', type=str, default="test", show_default=True, help="Key to use to uniquely identify the exported values.")
-#
 @click.option('--quantstats', is_flag=True, help="Enable the quantstats exporter.")
 @click.option('--quantstats-output-file-html', type=str, default="report.html", show_default=True, help="Specify the output html file.")
 @click.option('--quantstats-output-file-csv', type=str, default="report.csv", show_default=True, help="Specify the output csv file.")
@@ -132,8 +125,6 @@ def main(
     console, console_format, console_file, console_hide_skips, console_text_no_color,
     #
     dump: str, dump_output_file: str, dump_auto_delete: bool,
-    #
-    influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
     #
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
     #
@@ -274,16 +265,6 @@ def main(
         exporters.append(DumpExporter(
             output_file=dump_output_file,
             auto_delete=dump_auto_delete,
-        ))
-
-    if influx:
-        from .export import InfluxExporter
-        exporters.append(InfluxExporter(
-            host=influx_host,
-            port=influx_port,
-            database=influx_database,
-            measurement=influx_measurement,
-            key=influx_key
         ))
 
     if quantstats:
