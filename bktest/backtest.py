@@ -226,12 +226,13 @@ class ParallelBacktester:
     def run(self):
         self._fire_initialize()
 
-        for date, ordered, postponned in self.date_iterator:
-            for postpone in postponned:
+        for date, ordered, skips in self.date_iterator:
+            for skip in skips:
                 for pod in self.pods:
-                    pod.exporters.fire_skip(postpone.date, postpone.reason, True)
+                    pod.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
 
-                self.order(postpone.date, price_date=date)
+                if skip.ordered:
+                    self.order(skip.date, price_date=date)
 
             self.update_price(date)
 
@@ -318,12 +319,13 @@ class SimpleBacktester:
     def run(self):
         self.exporters.fire_initialize()
 
-        for date, ordered, postponned in self.date_iterator:
-            for postpone in postponned:
-                self.exporters.fire_skip(postpone.date, postpone.reason, True)
+        for date, ordered, skips in self.date_iterator:
+            for skip in skips:
+                self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
 
-                result = self.order(postpone.date, price_date=date)
-                self.exporters.fire_snapshot(date, self.account, result, postponned=postpone.date)
+                if skip.ordered:
+                    result = self.order(skip.date, price_date=date)
+                    self.exporters.fire_snapshot(date, self.account, result, postponned=skip.date)
 
             self.update_price(date)
             self.exporters.fire_snapshot(date, self.account, None)
