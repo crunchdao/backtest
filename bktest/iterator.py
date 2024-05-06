@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import typing
 
-from .data.holidays import HolidayProvider
+from .data.holidays import HolidayProvider, LegacyHolidayProvider
 
 
 @dataclasses.dataclass()
@@ -21,7 +21,7 @@ class DateIterator:
         end: datetime.date,
         closable: bool,
         order_dates: typing.List[datetime.date],
-        holiday_provider: HolidayProvider,
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
         allow_weekends=False,
         allow_holidays=False,
     ):

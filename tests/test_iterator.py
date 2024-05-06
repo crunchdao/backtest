@@ -1,7 +1,7 @@
 import datetime
 import unittest
 
-from bktest.iterator import DateIterator, Postpone
+from bktest.iterator import DateIterator, Skip
 
 
 class DateIteratorTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class DateIteratorTest(unittest.TestCase):
         date = datetime.date(2024, 1, 20)
 
         self.assertTrue(iterator._should_skip_weekends(date, True, postponned))
-        self.assertEqual(postponned, [Postpone(date, "weekend")])
+        self.assertEqual(postponned, [Skip(date, "weekend", True)])
 
     def test_should_skip_holidays_allow(self):
         iterator = DateIterator(None, None, False, [], allow_holidays=True)
@@ -50,7 +50,7 @@ class DateIteratorTest(unittest.TestCase):
         date = datetime.date(2023, 12, 25)
 
         self.assertTrue(iterator._should_skip_holidays(date, True, postponned))
-        self.assertEqual(postponned, [Postpone(date, "holiday")])
+        self.assertEqual(postponned, [Skip(date, "holiday", True)])
 
     def test_next(self):
         iterator = iter(DateIterator(
@@ -65,11 +65,11 @@ class DateIteratorTest(unittest.TestCase):
             ]
         ))
 
-        self.assertEqual(next(iterator), (datetime.date(2024, 1, 2), False, [Postpone(datetime.date(2024, 1, 1), "holiday")]))
+        self.assertEqual(next(iterator), (datetime.date(2024, 1, 2), False, [Skip(datetime.date(2024, 1, 1), "holiday", True)]))
         self.assertEqual(next(iterator), (datetime.date(2024, 1, 3), False, []))
         self.assertEqual(next(iterator), (datetime.date(2024, 1, 4), True, []))
         self.assertEqual(next(iterator), (datetime.date(2024, 1, 5), False, []))
-        self.assertEqual(next(iterator), (datetime.date(2024, 1, 8), False, [Postpone(datetime.date(2024, 1, 7), "weekend")]))
+        self.assertEqual(next(iterator), (datetime.date(2024, 1, 8), False, [Skip(datetime.date(2024, 1, 6), "weekend", False), Skip(datetime.date(2024, 1, 7), "weekend", True)]))
         self.assertEqual(next(iterator), (datetime.date(2024, 1, 9), True, []))
         self.assertEqual(next(iterator), (datetime.date(2024, 1, 10), False, []))
         self.assertRaises(StopIteration, lambda: next(iterator))
