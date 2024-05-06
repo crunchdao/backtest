@@ -1,6 +1,8 @@
+import dataclasses
 import datetime
 import typing
-import dataclasses
+
+from .data.holidays import HolidayProvider
 
 
 @dataclasses.dataclass()
@@ -19,13 +21,15 @@ class DateIterator:
         end: datetime.date,
         closable: bool,
         order_dates: typing.List[datetime.date],
+        holiday_provider: HolidayProvider,
         allow_weekends=False,
-        allow_holidays=False
+        allow_holidays=False,
     ):
         self.start = start
         self.end = end
         self.closable = closable
         self.order_dates = order_dates
+        self.holiday_provider = holiday_provider
         self.allow_weekends = allow_weekends
         self.allow_holidays = allow_holidays
         self.skips = []
@@ -65,9 +69,7 @@ class DateIterator:
         ordered: bool,
         skips: typing.List[Skip]
     ) -> bool:
-        from .data.holidays import holidays
-
-        if self.allow_holidays or date not in holidays:
+        if self.allow_holidays or not self.holiday_provider.is_holiday(date):
             return False
 
         skips.append(Skip(

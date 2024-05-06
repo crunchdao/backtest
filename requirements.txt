@@ -20,3 +20,4 @@ contexttimer
 watchdog
 fastparquet
 readwrite
+holidays

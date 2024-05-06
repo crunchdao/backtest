@@ -3,6 +3,7 @@ import sys
 import typing
 
 from .account import Account
+from .data.holidays import HolidayProvider, LegacyHolidayProvider
 from .data.source.base import DataSource
 from .export import Exporter, ExporterCollection
 from .fee import ConstantFeeModel, FeeModel
@@ -149,8 +150,9 @@ class ParallelBacktester:
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
         caching=True,
-        weekends=False,
-        holidays=False,
+        allow_weekends=False,
+        allow_holidays=False,
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -179,8 +181,9 @@ class ParallelBacktester:
             end,
             self.price_provider.is_closeable(),
             order_dates,
-            weekends,
-            holidays
+            holiday_provider,
+            allow_weekends,
+            allow_holidays
         )
 
     def update_price(self, date):
@@ -266,8 +269,9 @@ class SimpleBacktester:
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
         caching=True,
-        weekends=False,
-        holidays=False,
+        allow_weekends=False,
+        allow_holidays=False,
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -288,8 +292,9 @@ class SimpleBacktester:
             end,
             self.price_provider.is_closeable(),
             order_dates,
-            weekends,
-            holidays
+            holiday_provider,
+            allow_weekends,
+            allow_holidays,
         )
 
     def update_price(self, date):
