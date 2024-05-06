@@ -11,7 +11,7 @@ quantity_in_decimal = False
 
 data_source = bktest.data.source.YahooDataSource()
 
-order_provider = bktest.order.provider.DataFrameOrderProvider(pandas.DataFrame([
+order_provider = bktest.order.DataFrameOrderProvider(pandas.DataFrame([
     {"symbol": "AAPL", "quantity": +50, "date": (start + datetime.timedelta(days=10)).isoformat()},
     {"symbol": "TSLA", "quantity": -25, "date": (start + datetime.timedelta(days=10)).isoformat()},
     {"symbol": "AAPL", "quantity": -40, "date": (start + datetime.timedelta(days=20)).isoformat()},
@@ -23,7 +23,7 @@ fee_model = bktest.fee.ExpressionFeeModel(
     "abs(price * quantity) * 0.1"
 )
 
-bktest.Backtester(
+bktest.SimpleBacktester(
     start=start,
     end=end,
     order_provider=order_provider,
