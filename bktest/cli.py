@@ -37,7 +37,7 @@ dotenv.load_dotenv()
 #
 @click.option('--initial-cash', type=int, default=100_000, show_default=True, help="Specify an initial cash amount.")
 @click.option('--quantity-mode', type=click.Choice(['percent', 'share']), default="percent", show_default=True, help="Use percent for weight and share for units.")
-@click.option('--auto-close-others', is_flag=True, help="Close the position that hasn't been provided after all of the order.")
+@click.option('--auto-close-others', is_flag=True, help="[deprecated] Close the position that hasn't been provided after all of the order.")
 @click.option('--weekends', is_flag=True, help="Include weekends?")
 @click.option('--holidays', is_flag=True, help="Include holidays?")
 @click.option('--symbol-mapping', type=str, required=False, help="Custom symbol mapping file enabling vendor-id translation.")
@@ -141,6 +141,9 @@ def main(
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
 ):
     logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
+
+    if auto_close_others:
+        print("[warning] `--auto-close-others` is deprecated and is forced to `true`", file=sys.stderr)
 
     now = datetime.date.today()
 
@@ -325,7 +328,7 @@ def main(
         order_provider=order_provider,
         initial_cash=initial_cash,
         quantity_in_decimal=quantity_in_decimal,
-        auto_close_others=auto_close_others,
+        auto_close_others=True,
         data_source=data_source,
         mapper=symbol_mapper,
         exporters=exporters,
