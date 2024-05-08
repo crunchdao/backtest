@@ -27,7 +27,7 @@ dotenv.load_dotenv()
 @click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
 #
-@click.option('--offset-before-trading', type=int, default=0, show_default=True, help="Number of day to offset to push the signal before trading it.")
+@click.option('--offset-before-trading', type=int, default=0, show_default=True, help="Number of day to offset to push each date of the portfolio before trading it.")
 @click.option('--offset-before-ending', type=int, default=0, show_default=True, help="Number of day to continue the backtest after every orders.")
 #
 @click.option('--order-file', type=click.Path(exists=True, dir_okay=False), required=True, show_default=True, help="Specify an order file to use.")

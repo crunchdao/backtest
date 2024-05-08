@@ -38,7 +38,7 @@ bktest [OPTIONS]
 | --- | --- | --- | --- | --- |
 | `--start` | `<start date>` | `orders' first date` | `date` (ISO-8601) | The starting date of the backtesting. If the value is before the first ordering day, the value will be discarded. |
 | `--end` | `<end date>` | `orders' last date` | `date` (ISO-8601) | The ending date of the backtesting. If the value is after today, the value will be discarded. |
-| `--offset-before-trading` | `<days>` | `1` | `int` | Number of day to offset to push the signal before trading it. |
+| `--offset-before-trading` | `<days>` | `1` | `int` | Number of day to offset to push each date of the portfolio before trading it. |
 | `--offset-before-ending` | `<days>` | `0` | `int` | Number of day to continue the backtest after every orders. |
 | `--order-file` | `<file>` | | `path` | The single order file to use. The file must contain symbol, quantity and date information. |
 | `--single-file-provider-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
@@ -48,7 +48,6 @@ bktest [OPTIONS]
 | `--order-files-extension` | `<extension>` | `csv`  | `[csv, parquet, json]` | Change the file extension to use when listing for order files. |
 | `--initial-cash` | `<amount>` | `100_000` | `number` | Change the initial cash to use for the backtesting. |
 | `--quantity-mode` | `<mode>` | `percent` | `[percent, share]` | If the mode is `share`, all quantities will be interpreted as integers. If the mode is `percent`, all values will be multiplied by the current cash value. |
-| `--auto-close-others` | | `false` | | Should other position be closed after an ordering? |
 | `--weekends` | | `false` | | Enable ordering on weekends. |
 | `--holidays` | | `false` | | Enable ordering on holidays. |
 | `--symbol-mapping` | `<mapping>` | | `path` (.json) | Specify a custom symbol mapping file enabling vendor-id translation. |
