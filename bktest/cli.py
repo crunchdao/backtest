@@ -23,41 +23,45 @@ dotenv.load_dotenv()
 
 
 @click.group(invoke_without_command=True)
+#
 @click.option('--start', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="Start date.")
 @click.option('--end', type=click.DateTime(formats=["%Y-%m-%d"]), default=None, help="End date.")
-@click.option('--offset-before-trading', type=int, default=1, show_default=True, help="Number of day to offset to push the signal before trading it.")
+#
+@click.option('--offset-before-trading', type=int, default=0, show_default=True, help="Number of day to offset to push each date of the portfolio before trading it.")
 @click.option('--offset-before-ending', type=int, default=0, show_default=True, help="Number of day to continue the backtest after every orders.")
+#
 @click.option('--order-file', type=click.Path(exists=True, dir_okay=False), required=True, show_default=True, help="Specify an order file to use.")
 @click.option('--order-file-column-date', '--single-file-provider-column-date', type=str, default=constants.DEFAULT_DATE_COLUMN, show_default=True, help="Specify the date column name.")
 @click.option('--order-file-column-symbol', '--single-file-provider-column-symbol', type=str, default=constants.DEFAULT_SYMBOL_COLUMN, show_default=True, help="Specify the symbol column name.")
 @click.option('--order-file-column-quantity', '--single-file-provider-column-quantity', type=str, default=constants.DEFAULT_QUANTITY_COLUMN, show_default=True, help="Specify the quantity column name.")
+#
 @click.option('--initial-cash', type=int, default=100_000, show_default=True, help="Specify an initial cash amount.")
 @click.option('--quantity-mode', type=click.Choice(['percent', 'share']), default="percent", show_default=True, help="Use percent for weight and share for units.")
-@click.option('--auto-close-others', is_flag=True, help="Close the position that hasn't been provided after all of the order.")
+@click.option('--auto-close-others', is_flag=True, help="[deprecated] Close the position that hasn't been provided after all of the order.")
 @click.option('--weekends', is_flag=True, help="Include weekends?")
 @click.option('--holidays', is_flag=True, help="Include holidays?")
 @click.option('--symbol-mapping', type=str, required=False, help="Custom symbol mapping file enabling vendor-id translation.")
 @click.option('--no-caching', is_flag=True, help="Disable price caching.")
 @click.option('--fee-model', "fee_model_value", type=str, help="Specify a fee model. Must be a constant or an expression.")
+#
+@click.option('holiday_provider_name', '--holiday-provider', type=click.Choice(['legacy', 'nyse']), default="nyse", help="Specify the holiday provider to use.")
+#
 @click.option('--console', is_flag=True, help="Enable the console exporter.")
 @click.option('--console-format', type=click.Choice(['text', 'json']), default="text", show_default=True, help="Console output format.")
 @click.option('--console-file', type=click.Choice(['out', 'err']), default="out", show_default=True, help="Console output destination file.")
 @click.option('--console-hide-skips', is_flag=True, show_default=True, help="Should the console hide skipped days?")
 @click.option('--console-text-no-color', is_flag=True, help="Disable colors in the console output.")
+#
 @click.option('--dump', is_flag=True, help="Enable the dump exporter.")
 @click.option('--dump-output-file', type=str, default="dump.csv", show_default=True, help="Specify the output file.")
 @click.option('--dump-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
-@click.option('--influx', is_flag=True, help="Enable the influx exporter.")
-@click.option('--influx-host', type=str, default="localhost", show_default=True, help="Influx's database host.")
-@click.option('--influx-port', type=int, default=8086, show_default=True, help="Influx's database port.")
-@click.option('--influx-database', type=str, default="backtest", show_default=True, help="Influx's database name.")
-@click.option('--influx-measurement', type=str, default="snapshots", show_default=True, help="Influx's database table.")
-@click.option('--influx-key', type=str, default="test", show_default=True, help="Key to use to uniquely identify the exported values.")
+#
 @click.option('--quantstats', is_flag=True, help="Enable the quantstats exporter.")
 @click.option('--quantstats-output-file-html', type=str, default="report.html", show_default=True, help="Specify the output html file.")
 @click.option('--quantstats-output-file-csv', type=str, default="report.csv", show_default=True, help="Specify the output csv file.")
 @click.option('--quantstats-benchmark-ticker', type=str, default="SPY", show_default=True, help="Specify the symbol to use as a benchmark.")
 @click.option('--quantstats-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
+#
 @click.option('--pdf', is_flag=True, help="Enable the quantstats exporter.")
 @click.option('--pdf-template', type=str, default="tearsheet.sketch", show_default=True, help="Specify the template file.")
 @click.option('--pdf-output-file', type=str, default="report.pdf", show_default=True, help="Specify the output pdf file.")
@@ -65,6 +69,7 @@ dotenv.load_dotenv()
 @click.option('--pdf-debug', is_flag=True, help="Enable renderer debugging.")
 @click.option('--pdf-variable', "pdf_variables", nargs=2, multiple=True, type=(str, str), help="Specify custom variables.")
 @click.option('--pdf-user-script', "pdf_user_script_paths", multiple=True, type=str, help="Specify custom scripts.")
+#
 @click.option('--specific-return', type=str, help="Enable the specific return exporter by proving a .parquet.")
 @click.option('--specific-return-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--specific-return-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
@@ -72,17 +77,22 @@ dotenv.load_dotenv()
 @click.option('--specific-return-output-file-html', type=str, default="sr-report.html", show_default=True, help="Specify the output html file.")
 @click.option('--specific-return-output-file-csv', type=str, default="sr-report.csv", show_default=True, help="Specify the output csv file.")
 @click.option('--specific-return-auto-delete', is_flag=True, help="Should conflicting files be automatically deleted?")
+#
 @click.option('--yahoo', is_flag=True, help="Use yahoo finance as the data source.")
+#
 @click.option('--coinmarketcap', is_flag=True, help="Use coin market cap as the data source.")
 @click.option('--coinmarketcap-force-mapping-refresh', is_flag=True, help="Force a mapping refresh.")
 @click.option('--coinmarketcap-page-size', default=10_000, help="Specify the query page size when building the mapping.")
+#
 @click.option('--factset', is_flag=True, help="Use factset prices as the data source.")
 @click.option('--factset-username-serial', type=str, envvar="FACTSET_USERNAME_SERIAL", help="Specify the factset username serial to use.")
 @click.option('--factset-api-key', type=str, envvar="FACTSET_API_KEY", help="Specify the factset api key to use.")
+#
 @click.option('--file-parquet', type=str, required=False, help="Use a .parquet file as the data source.")
 @click.option('--file-parquet-column-date', type=str, default="date", show_default=True, help="Specify the column name containing the dates.")
 @click.option('--file-parquet-column-symbol', type=str, default="symbol", show_default=True, help="Specify the column name containing the symbols.")
 @click.option('--file-parquet-column-price', type=str, default="price", show_default=True, help="Specify the column name containing the prices.")
+#
 @click.pass_context
 def cli(ctx: click.Context, **kwargs):
     if ctx.invoked_subcommand is None:
@@ -90,28 +100,50 @@ def cli(ctx: click.Context, **kwargs):
 
 
 def main(
-    start: datetime.datetime, end: datetime.datetime,
+    start: datetime.datetime,
+    end: datetime.datetime,
+    #
     offset_before_trading: int,
     offset_before_ending: int,
+    #
     order_file,
     order_file_column_date: str,
     order_file_column_symbol: str,
     order_file_column_quantity: str,
-    initial_cash, quantity_mode, auto_close_others,
-    weekends, holidays, symbol_mapping, no_caching,
+    #
+    initial_cash,
+    quantity_mode,
+    auto_close_others,
+    weekends,
+    holidays,
+    symbol_mapping,
+    no_caching,
     fee_model_value,
+    #
+    holiday_provider_name: str,
+    #
     console, console_format, console_file, console_hide_skips, console_text_no_color,
+    #
     dump: str, dump_output_file: str, dump_auto_delete: bool,
-    influx, influx_host, influx_port, influx_database, influx_measurement, influx_key,
+    #
     quantstats, quantstats_output_file_html, quantstats_output_file_csv, quantstats_benchmark_ticker, quantstats_auto_delete,
+    #
     pdf: bool, pdf_template: str, pdf_output_file: str, pdf_auto_delete: bool, pdf_debug: bool, pdf_variables: typing.Tuple[typing.Tuple[str, str]], pdf_user_script_paths: str,
+    #
     specific_return: str, specific_return_column_date: str, specific_return_column_symbol: str, specific_return_column_value: str, specific_return_output_file_html: str, specific_return_output_file_csv: str, specific_return_auto_delete: bool,
+    #
     yahoo,
+    #
     coinmarketcap, coinmarketcap_force_mapping_refresh, coinmarketcap_page_size,
+    #
     factset: bool, factset_username_serial: str, factset_api_key: str,
+    #
     file_parquet, file_parquet_column_date, file_parquet_column_symbol, file_parquet_column_price,
 ):
     logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
+
+    if auto_close_others:
+        print("[warning] `--auto-close-others` is deprecated and is forced to `true`", file=sys.stderr)
 
     now = datetime.date.today()
 
@@ -138,6 +170,12 @@ def main(
         end = now
 
         print(f"[warning] end is after today, using: {now}", file=sys.stderr)
+    
+    from .data.holidays import LegacyHolidayProvider, SimpleHolidayProvider
+    holiday_provider = ({
+        "legacy": lambda: LegacyHolidayProvider(),
+        "nyse": lambda: SimpleHolidayProvider.nyse()
+    }[holiday_provider_name])()
 
     data_source = None
     if yahoo:
@@ -232,16 +270,6 @@ def main(
             auto_delete=dump_auto_delete,
         ))
 
-    if influx:
-        from .export import InfluxExporter
-        exporters.append(InfluxExporter(
-            host=influx_host,
-            port=influx_port,
-            database=influx_database,
-            measurement=influx_measurement,
-            key=influx_key
-        ))
-
     if quantstats:
         from .export import QuantStatsExporter
         exporters.append(QuantStatsExporter(
@@ -300,14 +328,15 @@ def main(
         order_provider=order_provider,
         initial_cash=initial_cash,
         quantity_in_decimal=quantity_in_decimal,
-        auto_close_others=auto_close_others,
+        auto_close_others=True,
         data_source=data_source,
         mapper=symbol_mapper,
         exporters=exporters,
         fee_model=fee_model,
         caching=not no_caching,
-        weekends=weekends,
-        holidays=holidays
+        allow_weekends=weekends,
+        allow_holidays=holidays,
+        holiday_provider=holiday_provider
     ).run()
 
 

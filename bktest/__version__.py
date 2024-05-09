@@ -1,6 +1,6 @@
 __title__ = 'bktest'
 __description__ = 'bktest - A simple backtester by CrunchDAO'
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 __author__ = 'Enzo CACERES'
 __author_email__ = 'enzo.caceres@crunchdao.com'
 __url__ = 'https://github.com/crunchdao/backtest'

@@ -1,13 +1,16 @@
+import dataclasses
 import datetime
 import typing
-import dataclasses
+
+from .data.holidays import HolidayProvider, LegacyHolidayProvider
 
 
 @dataclasses.dataclass()
-class Postpone:
-    
+class Skip:
+
     date: datetime.date
     reason: str
+    ordered: bool
 
 
 class DateIterator:
@@ -18,16 +21,18 @@ class DateIterator:
         end: datetime.date,
         closable: bool,
         order_dates: typing.List[datetime.date],
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
         allow_weekends=False,
-        allow_holidays=False
+        allow_holidays=False,
     ):
         self.start = start
         self.end = end
         self.closable = closable
         self.order_dates = order_dates
+        self.holiday_provider = holiday_provider
         self.allow_weekends = allow_weekends
         self.allow_holidays = allow_holidays
-        self.postponned = []
+        self.skips = []
 
         self._date = None
 
@@ -45,16 +50,16 @@ class DateIterator:
         self,
         date: datetime.date,
         ordered: bool,
-        postponned: typing.List[Postpone]
+        skips: typing.List[Skip]
     ) -> bool:
         if self.allow_weekends or date.weekday() <= 4:
             return False
 
-        if ordered:
-            postponned.append(Postpone(
-                date,
-                "weekend"
-            ))
+        skips.append(Skip(
+            date,
+            "weekend",
+            ordered
+        ))
 
         return True
 
@@ -62,37 +67,35 @@ class DateIterator:
         self,
         date: datetime.date,
         ordered: bool,
-        postponned: typing.List[Postpone]
+        skips: typing.List[Skip]
     ) -> bool:
-        from .data.holidays import holidays as days
-        
-        if self.allow_holidays or date not in days:
+        if self.allow_holidays or not self.holiday_provider.is_holiday(date):
             return False
 
-        if ordered:
-            postponned.append(Postpone(
-                date,
-                "holiday"
-            ))
+        skips.append(Skip(
+            date,
+            "holiday",
+            ordered
+        ))
 
         return True
 
     def __next__(self):
-        postponned: typing.List[Postpone] = []
+        skips: typing.List[Skip] = []
 
         while self._date <= self.end:
-            date = self._date
+            date = datetime.date.fromisoformat(str(self._date))
             self._date += datetime.timedelta(days=1)
 
             ordered = date in self.order_dates
 
             if self.closable:
-                if self._should_skip_weekends(date, ordered, postponned):
+                if self._should_skip_weekends(date, ordered, skips):
                     continue
 
-                if self._should_skip_holidays(date, ordered, postponned):
+                if self._should_skip_holidays(date, ordered, skips):
                     continue
 
-            return date, ordered, postponned
+            return date, ordered, skips
 
         raise StopIteration

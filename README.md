@@ -10,7 +10,6 @@ A small backtesting utility.
     - [Exporters](#exporters)
       - [Console](#console)
       - [Dump](#dump)
-      - [Influx](#influx)
       - [QuantStats](#quantstats)
       - [PDF](#pdf)
       - [Specific Return](#specific-return)
@@ -39,7 +38,7 @@ bktest [OPTIONS]
 | --- | --- | --- | --- | --- |
 | `--start` | `<start date>` | `orders' first date` | `date` (ISO-8601) | The starting date of the backtesting. If the value is before the first ordering day, the value will be discarded. |
 | `--end` | `<end date>` | `orders' last date` | `date` (ISO-8601) | The ending date of the backtesting. If the value is after today, the value will be discarded. |
-| `--offset-before-trading` | `<days>` | `1` | `int` | Number of day to offset to push the signal before trading it. |
+| `--offset-before-trading` | `<days>` | `1` | `int` | Number of day to offset to push each date of the portfolio before trading it. |
 | `--offset-before-ending` | `<days>` | `0` | `int` | Number of day to continue the backtest after every orders. |
 | `--order-file` | `<file>` | | `path` | The single order file to use. The file must contain symbol, quantity and date information. |
 | `--single-file-provider-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
@@ -49,13 +48,13 @@ bktest [OPTIONS]
 | `--order-files-extension` | `<extension>` | `csv`  | `[csv, parquet, json]` | Change the file extension to use when listing for order files. |
 | `--initial-cash` | `<amount>` | `100_000` | `number` | Change the initial cash to use for the backtesting. |
 | `--quantity-mode` | `<mode>` | `percent` | `[percent, share]` | If the mode is `share`, all quantities will be interpreted as integers. If the mode is `percent`, all values will be multiplied by the current cash value. |
-| `--auto-close-others` | | `false` | | Should other position be closed after an ordering? |
 | `--weekends` | | `false` | | Enable ordering on weekends. |
 | `--holidays` | | `false` | | Enable ordering on holidays. |
 | `--symbol-mapping` | `<mapping>` | | `path` (.json) | Specify a custom symbol mapping file enabling vendor-id translation. |
 | `--no-caching` | | `false` | | Disable prices caching. |
 | `--fee-model` | `<model>` | | `expression` or `constant` | Specify a fee model to use. The value can be a `constant`. Or an expression that allow the usage of the `price` and `quantity` variable. <br /> Example: `abs(price * quantity) * 0.1` |
-| `--rfr-file` | `<directory>` | | `path` | The directory of rfr file to use. The file must contain a column with date information and a column with the rfr information in %. |
+| `--holiday-provider` | `<name>` | `nyse` | `[legacy, nyse]` | Specify which holiday provider to use. |
+| `--rfr-file` | `<directory>` |  | `path` | The directory of rfr file to use. The file must contain a column with date information and a column with the rfr information in %. |
 | `--rfr-file-column-date` | `<column>` | `date` | `string` | Change the date column name to use. |
 
 ### Exporters
@@ -83,20 +82,6 @@ The dump exporter generate a dump of the portfolio at each day.
 | `--dump` | | `false` | | Enable the dump exporter. |
 | `--dump-output-file` | `<file>` | `dump.csv` | `path` | Specify the output file. |
 | `--dump-auto-delete` | | `false` | | Automatically delete the previous dump file if it is present. |
-
-#### Influx
-
-Export the generated data to an Influx database. <br />
-Making it easier to plot the values using software like Grafana.
-
-| Option | Value | Default | Format | Description |
-| --- | --- | --- | --- | --- |
-| `--influx` | | `false` | | Enable the influx exporter. |
-| `--influx-host` | `<host>` | `localhost` | `string` | Specify the remote influx address. |
-| `--influx-port` | `<port>` | `8086` | `number` | Specify the remote influx port. |
-| `--influx-database` | `<database>` | `backtest` | `string` | Specify the influx database to use. |
-| `--influx-measurement` | `<measurement>` | `snapshots` |`string` | Specify the table name to use. |
-| `--influx-key` | `<key>` | `test` | `string` | Specify the unique key to use. **Previous data with the same key will be deleted!** |
 
 #### QuantStats
 

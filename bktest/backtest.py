@@ -3,6 +3,7 @@ import sys
 import typing
 
 from .account import Account
+from .data.holidays import HolidayProvider, LegacyHolidayProvider
 from .data.source.base import DataSource
 from .export import Exporter, ExporterCollection
 from .fee import ConstantFeeModel, FeeModel
@@ -149,8 +150,9 @@ class ParallelBacktester:
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
         caching=True,
-        weekends=False,
-        holidays=False,
+        allow_weekends=False,
+        allow_holidays=False,
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -179,8 +181,9 @@ class ParallelBacktester:
             end,
             self.price_provider.is_closeable(),
             order_dates,
-            weekends,
-            holidays
+            holiday_provider,
+            allow_weekends,
+            allow_holidays
         )
 
     def update_price(self, date):
@@ -226,12 +229,13 @@ class ParallelBacktester:
     def run(self):
         self._fire_initialize()
 
-        for date, ordered, postponned in self.date_iterator:
-            for postpone in postponned:
+        for date, ordered, skips in self.date_iterator:
+            for skip in skips:
                 for pod in self.pods:
-                    pod.exporters.fire_skip(postpone.date, postpone.reason, True)
+                    pod.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
 
-                self.order(postpone.date, price_date=date)
+                if skip.ordered:
+                    self.order(skip.date, price_date=date)
 
             self.update_price(date)
 
@@ -265,8 +269,9 @@ class SimpleBacktester:
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
         caching=True,
-        weekends=False,
-        holidays=False,
+        allow_weekends=False,
+        allow_holidays=False,
+        holiday_provider: HolidayProvider = LegacyHolidayProvider(),
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -287,8 +292,9 @@ class SimpleBacktester:
             end,
             self.price_provider.is_closeable(),
             order_dates,
-            weekends,
-            holidays
+            holiday_provider,
+            allow_weekends,
+            allow_holidays,
         )
 
     def update_price(self, date):
@@ -318,12 +324,13 @@ class SimpleBacktester:
     def run(self):
         self.exporters.fire_initialize()
 
-        for date, ordered, postponned in self.date_iterator:
-            for postpone in postponned:
-                self.exporters.fire_skip(postpone.date, postpone.reason, True)
+        for date, ordered, skips in self.date_iterator:
+            for skip in skips:
+                self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
 
-                result = self.order(postpone.date, price_date=date)
-                self.exporters.fire_snapshot(date, self.account, result, postponned=postpone.date)
+                if skip.ordered:
+                    result = self.order(skip.date, price_date=date)
+                    self.exporters.fire_snapshot(date, self.account, result, postponned=skip.date)
 
             self.update_price(date)
             self.exporters.fire_snapshot(date, self.account, None)
