@@ -18,6 +18,7 @@ class Account:
         self.fee_model = fee_model if fee_model else ConstantFeeModel(0)
 
         self.cash = initial_cash
+        self.cash_new = initial_cash
         self.total_long = 0
         self.total_short = 0
         self._holdings: typing.Dict[str, Holding] = dict()
@@ -32,6 +33,18 @@ class Account:
     @property
     def equity(self) -> float:
         return self.cash + self.value
+        #return self.value
+
+    @property
+    def equity_new(self) -> float:
+        return sum(
+            holding.value
+            for holding in self._holdings.values()
+        )
+
+    @property
+    def nav(self) -> float:
+        return self.cash_new + self.equity_new
 
     @property
     def symbols(self) -> typing.Set[str]:
@@ -58,6 +71,7 @@ class Account:
 
         self._handle_cash(order, result.fee)
 
+        # Handle holdings in the account.
         holding = self.find_holding(order.symbol)
 
         if holding:
@@ -66,7 +80,7 @@ class Account:
             if not holding.quantity:
                 del self._holdings[order.symbol]
         else:
-            self._holdings[order.symbol] = Holding.from_order(order)
+            self._holdings[order.symbol] = Holding.from_order(order)    # add date to holding
 
         return result
 
@@ -112,9 +126,11 @@ class Account:
         return Order(
             order.symbol,
             order.quantity - holding.quantity,
-            order.price
+            order.price,
+            order._value -  holding.value,
         )
 
     def _handle_cash(self, order: Order, fee: float):
         self.cash -= fee
         self.cash -= order.value
+        self.cash_new -= order._value

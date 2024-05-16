@@ -78,6 +78,10 @@ class PriceProvider:
         self.caching = caching
 
         self.storage = PriceProvider._create_storage(start, end, caching)
+        self.close_price = pandas.DataFrame()
+        self.adj_close_price = pandas.DataFrame()
+        #self.total_returns = pandas.DataFrame()
+        self.total_returns = PriceProvider._create_storage(start, end, caching, name='returns')
         self.symbols = PriceProvider._create_symbols_set(self.storage)
 
         self.updated = False
@@ -94,9 +98,16 @@ class PriceProvider:
 
             prices = self.data_source.fetch_prices(
                 symbols=self.mapper.maps(missing_symbols),
-                start=self.start - one_day,
+                start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base
                 end=self.end + one_day
             )
+            
+#            self.close_price = self.data_source.fetch_prices(
+#                symbols=self.mapper.maps(missing_symbols),
+#                start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base
+#                end=self.end + one_day,
+#                "Close",
+#            )
 
             if prices is None:
                 prices = pandas.DataFrame(
@@ -128,6 +139,8 @@ class PriceProvider:
                 if prices[column].isna().values.all():
                     print(f"[warning] {column} does not have a price", file=sys.stderr)
 
+
+            
             if self.storage is not None:
                 with warnings.catch_warnings():
                     warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
@@ -140,7 +153,22 @@ class PriceProvider:
                     )
             else:
                 self.storage = prices
-
+                        
+            total_returns = prices/prices.shift(1) -1
+            
+            if self.total_returns is not None:
+                with warnings.catch_warnings():
+                    warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
+            
+                    self.total_returns =  pandas.merge(
+                        self.total_returns,
+                        total_returns,
+                        on=constants.DEFAULT_DATE_COLUMN,
+                        how="left"
+                    )
+            else:
+                self.total_returns = total_returns
+                    
             self.symbols.update(missing_symbols)
             self.updated = True
 
@@ -156,6 +184,18 @@ class PriceProvider:
 
         return value
 
+    def get_total_return(self, date: datetime.date, symbol: str):
+        if symbol not in self.symbols:
+            raise ValueError(f"{symbol} not available")
+
+        symbol = self.mapper.map(symbol)
+
+        value = self.total_returns[symbol][numpy.datetime64(date)]
+        if not value or numpy.isnan(value):
+            value = None
+
+        return value
+
     def save(self):
         if not self.caching or not self.updated:
             return
@@ -165,14 +205,17 @@ class PriceProvider:
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         self.storage.to_csv(path)
+        
+        path = PriceProvider._get_cache_path(self.start, self.end, name='returns')
+        self.total_returns.to_csv(path)
 
     def is_closeable(self) -> bool:
         return self.data_source.is_closeable()
 
     @staticmethod
-    def _create_storage(start: datetime.date, end: datetime.date, caching=True):
+    def _create_storage(start: datetime.date, end: datetime.date, caching=True, name='prices'):
         if caching:
-            path = PriceProvider._get_cache_path(start, end)
+            path = PriceProvider._get_cache_path(start, end, name=name)
 
             if os.path.exists(path):
                 dataframe = pandas.read_csv(path, index_col=constants.DEFAULT_DATE_COLUMN)
@@ -200,5 +243,5 @@ class PriceProvider:
         return set([symbol for symbol in storage.columns if symbol != "_"])
 
     @staticmethod
-    def _get_cache_path(start, end):
-        return f".cache/prices-s{start}-e{end}.csv"
+    def _get_cache_path(start, end, name='prices'):
+        return f".cache/{name}-s{start}-e{end}.csv"

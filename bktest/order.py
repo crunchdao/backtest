@@ -24,6 +24,7 @@ class Order:
     symbol: str
     quantity: int
     price: float = None
+    _value: float = None
 
     @property
     def value(self) -> float:
@@ -156,6 +157,7 @@ class DataFrameOrderProvider(OrderProvider):
                 symbol=row[symbol_column],
                 quantity=row[quantity_column],
                 price=None,
+                _value=None,
             )
             for _, row in dataframe.iterrows()
         ]

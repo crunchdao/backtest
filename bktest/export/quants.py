@@ -62,6 +62,7 @@ class QuantStatsExporter(Exporter):
             date = snapshot.postponned
 
         self.rows.append(
+            #(date, snapshot.nav) # Lior
             (date, snapshot.equity)
         )
 
@@ -72,6 +73,7 @@ class QuantStatsExporter(Exporter):
             columns=["date", "equity"]
         ).set_index("date")
 
+        self.dataframe.to_csv('temp_qs.csv')
         if not len(self.dataframe):
             print(
                 "[warning] cannot create tearsheet: dataframe is empty",
@@ -97,7 +99,9 @@ class QuantStatsExporter(Exporter):
             history_df['date'],
             format="%Y-%m-%d"
         )
-
+        
+        history_df.to_csv('history_df.csv')
+        
         if self.benchmark_ticker:
             bench = quantstats.utils.download_returns(self.benchmark_ticker)
 

@@ -7,7 +7,7 @@ import bktest
 end = datetime.date.today()
 start = end - datetime.timedelta(days=38)
 initial_cash = 1_000_000
-quantity_in_decimal = False
+quantity_in_decimal = False # True = weights
 
 data_source = bktest.data.source.YahooDataSource()
 

@@ -39,6 +39,7 @@ class _Pod:
         if price_date is None:
             price_date = date
 
+        # symbols of the current orders.
         symbols = [
             order.symbol
             for order in orders
@@ -46,21 +47,30 @@ class _Pod:
 
         self.price_provider.download_missing(symbols)
 
+        # symbols in the current account.
         others = self.account.symbols
 
+        # Enter if into the loop and save code lines.
         if self.quantity_in_decimal:
             equity = self.account.equity
+            nav = self.account.nav
+            #equity = nav
 
             for order in orders:
                 symbol = order.symbol
                 percent = order.quantity
                 price = order.price or self.price_provider.get(price_date, symbol)
+                total_return = self.price_provider.get_total_return(price_date, symbol)
 
                 holding_cash_value = equity * percent
                 if price is not None:
+                    #if key_returs:
+                    #    quantity = holding_cash_value
+                    
                     quantity = int(holding_cash_value / price)
+                    #quantity = float(holding_cash_value / price)
 
-                    result = self.account.order_position(Order(symbol, quantity, price))
+                    result = self.account.order_position(Order(symbol, quantity, price, nav * percent))
                     results.append(result)
 
                     if result.success:
@@ -272,6 +282,7 @@ class SimpleBacktester:
         allow_weekends=False,
         allow_holidays=False,
         holiday_provider: HolidayProvider = LegacyHolidayProvider(),
+        prices_as_returns: bool = False,
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -297,7 +308,8 @@ class SimpleBacktester:
             allow_holidays,
         )
 
-    def update_price(self, date):
+    def update_price(self, date) -> bool:
+        trading_day = False
         for holding in self.account.holdings:
             price = self.price_provider.get(date, holding.symbol)
 
@@ -307,12 +319,32 @@ class SimpleBacktester:
             else:
                 holding.price = price
                 holding.up_to_date = True
+        
+            trading_day = trading_day or holding.up_to_date
+        
+        return trading_day
+    
+    def update_values(self, date) -> bool:
+        trading_day = False
+        for holding in self.account.holdings:
+            total_return = self.price_provider.get_total_return(date, holding.symbol)
 
+            if total_return is None:
+                print(f"[warning] no total_return: {holding.symbol}: keeping last value: {holding.value}", file=sys.stderr)
+                holding.up_to_date = False
+            else:
+                holding.value *= (1 + total_return)
+                holding.up_to_date = True
+
+            trading_day = trading_day or holding.up_to_date
+        
+        return trading_day
     def order(
         self,
         date: datetime.date,
         price_date=None,
     ):
+        # Original oreders.
         orders = self.order_provider.get_orders(date, self.account)
 
         return self.pod.order(
@@ -323,22 +355,41 @@ class SimpleBacktester:
 
     def run(self):
         self.exporters.fire_initialize()
+        pre_tading=True
 
         for date, ordered, skips in self.date_iterator:
+            
+            skip_order = False
             for skip in skips:
+                skip_order = skip_order or skip.ordered
+                if skip.ordered: order_date=skip.date
                 self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
 
-                if skip.ordered:
-                    result = self.order(skip.date, price_date=date)
-                    self.exporters.fire_snapshot(date, self.account, result, postponned=skip.date)
-
-            self.update_price(date)
-            self.exporters.fire_snapshot(date, self.account, None)
-
-            if ordered:
+            if not pre_tading:#  and date !=datetime.date(2024, 1, 22):
+                trading_day = self.update_values(date) or self.update_price(date)
+                if trading_day:
+                    self.exporters.fire_snapshot(date, self.account, None)
+                else:
+                    self.exporters.fire_skip(date, 'No trading', False)
+                    #continue
+                
+            if skip_order:
+                result = self.order(order_date, price_date=date)
+                self.exporters.fire_snapshot(date, self.account, result, postponned=order_date)
+            elif ordered:
                 result = self.order(date)
-
                 self.exporters.fire_snapshot(date, self.account, result)
+            if pre_tading:
+                self.exporters.fire_snapshot(date, self.account, None)
+                pre_tading=False
+    
+            #else:
+
+
+            #if ordered:
+            #   result = self.order(date)
+
+            #    self.exporters.fire_snapshot(date, self.account, result)
 
         self.price_provider.save()
 
