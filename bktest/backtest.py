@@ -9,7 +9,7 @@ from .export import Exporter, ExporterCollection
 from .fee import ConstantFeeModel, FeeModel
 from .order import Order, OrderProvider, ParallelOrderProvider, OrderResultCollection
 from .price_provider import PriceProvider, SymbolMapper
-from .iterator import DateIterator
+from .iterator import DateIterator,Skip
 
 
 class _Pod:
@@ -278,11 +278,11 @@ class SimpleBacktester:
         exporters: typing.List[Exporter] = [],
         mapper: SymbolMapper = None,
         fee_model: FeeModel = ConstantFeeModel(0.0),
-        caching=True,
+        caching=False, #True,
         allow_weekends=False,
         allow_holidays=False,
         holiday_provider: HolidayProvider = LegacyHolidayProvider(),
-        prices_as_returns: bool = False,
+        use_returns_instead_of_prices: bool = False,
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
@@ -355,42 +355,78 @@ class SimpleBacktester:
 
     def run(self):
         self.exporters.fire_initialize()
-        pre_tading=True
+        pre_trading = True
+        ordered = False
 
-        for date, ordered, skips in self.date_iterator:
+        date = self.date_iterator.start-datetime.timedelta(days=1)
+        while date < self.date_iterator.end:
+            date += datetime.timedelta(days=1)
             
-            skip_order = False
-            for skip in skips:
-                skip_order = skip_order or skip.ordered
-                if skip.ordered: order_date=skip.date
-                self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
-
-            if not pre_tading:#  and date !=datetime.date(2024, 1, 22):
-                trading_day = self.update_values(date) or self.update_price(date)
+            skips: typing.List[Skip] = []
+            if date in self.date_iterator.order_dates:
+                ordered = True
+                order_date = date
+            # No trading day beause of weekend or holiday.
+            if self.date_iterator._should_skip_weekends(date, ordered, skips) or self.date_iterator._should_skip_holidays(date, ordered, skips):
+                self.exporters.fire_skip(date, skips[0].reason, ordered)
+                assert len(skips) == 1
+                continue
+            
+            # trading_day can still be false if we missed a holiday. So we set trading_day to False if there is no price change in any asset.
+            if not pre_trading:
+                trading_day = self.update_values(date)
+                trading_day = self.update_price(date) or trading_day
+            
                 if trading_day:
                     self.exporters.fire_snapshot(date, self.account, None)
                 else:
                     self.exporters.fire_skip(date, 'No trading', False)
-                    #continue
-                
-            if skip_order:
+                    continue
+            
+            if ordered:
                 result = self.order(order_date, price_date=date)
-                self.exporters.fire_snapshot(date, self.account, result, postponned=order_date)
-            elif ordered:
-                result = self.order(date)
-                self.exporters.fire_snapshot(date, self.account, result)
-            if pre_tading:
+                # No trades were done so the order was given on a non-trading day and the portfolio is empty.
+                if len(result.elements) == 0:
+                    self.exporters.fire_skip(date, 'No trading', ordered)
+                    continue
+                    
+                if order_date != date:
+                    self.exporters.fire_snapshot(date, self.account, result, postponned=order_date)
+                else:
+                    self.exporters.fire_snapshot(date, self.account, result)
+                ordered = False
+            if pre_trading:
                 self.exporters.fire_snapshot(date, self.account, None)
-                pre_tading=False
+                pre_trading = False
+                
+
+        # for date, ordered, skips in self.date_iterator:
+            
+        #     skip_order = False
+        #     for skip in skips:
+        #         skip_order = skip_order or skip.ordered
+        #         if skip.ordered: order_date=skip.date
+        #         self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
+
+        #     if not pre_tading:#  and date !=datetime.date(2024, 1, 22):
+        #         trading_day = self.update_values(date)
+        #         trading_day = self.update_price(date) or trading_day
+        #         if trading_day:
+        #             self.exporters.fire_snapshot(date, self.account, None)
+        #         else:
+        #             self.exporters.fire_skip(date, 'No trading', False)
+        #             #continue
+                
+        #     if skip_order:
+        #         result = self.order(order_date, price_date=date)
+        #         self.exporters.fire_snapshot(date, self.account, result, postponned=order_date)
+        #     elif ordered:
+        #         result = self.order(date)
+        #         self.exporters.fire_snapshot(date, self.account, result)
+        #     if pre_tading:
+        #         self.exporters.fire_snapshot(date, self.account, None)
+        #         pre_tading=False
     
-            #else:
-
-
-            #if ordered:
-            #   result = self.order(date)
-
-            #    self.exporters.fire_snapshot(date, self.account, result)
-
         self.price_provider.save()
 
         self.exporters.fire_finalize()
