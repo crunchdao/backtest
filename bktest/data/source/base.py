@@ -6,7 +6,9 @@ import pandas
 
 
 class DataSource(metaclass=abc.ABCMeta):
-
+    def __init__(self, data_source_contains_prices_not_returns = True) -> None:
+        self.data_source_contains_prices_not_returns = data_source_contains_prices_not_returns
+        
     @abc.abstractmethod
     def fetch_prices(
         self,

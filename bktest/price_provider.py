@@ -11,6 +11,7 @@ import pandas
 from .data.source.base import DataSource
 from . import constants
 
+import copy
 
 class SymbolMapper:
 
@@ -78,9 +79,6 @@ class PriceProvider:
         self.caching = caching
 
         self.storage = PriceProvider._create_storage(start, end, caching)
-        self.close_price = pandas.DataFrame()
-        self.adj_close_price = pandas.DataFrame()
-        #self.total_returns = pandas.DataFrame()
         self.total_returns = PriceProvider._create_storage(start, end, caching, name='returns')
         self.symbols = PriceProvider._create_symbols_set(self.storage)
 
@@ -98,17 +96,10 @@ class PriceProvider:
 
             prices = self.data_source.fetch_prices(
                 symbols=self.mapper.maps(missing_symbols),
-                start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base
+                start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base?
                 end=self.end + one_day
             )
             
-#            self.close_price = self.data_source.fetch_prices(
-#                symbols=self.mapper.maps(missing_symbols),
-#                start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base
-#                end=self.end + one_day,
-#                "Close",
-#            )
-
             if prices is None:
                 prices = pandas.DataFrame(
                     index=pandas.Index([], name=constants.DEFAULT_DATE_COLUMN),
@@ -135,12 +126,19 @@ class PriceProvider:
                         ))
 
             prices.columns = self.mapper.unmaps(prices.columns)
+            
             for column in prices.columns:
                 if prices[column].isna().values.all():
                     print(f"[warning] {column} does not have a price", file=sys.stderr)
-
-
-            
+           
+            if self.data_source.data_source_contains_prices_not_returns:
+                total_returns = prices/prices.shift(1) -1
+            else:    
+                total_returns = copy.deepcopy(prices)
+                # If return for a specific stock exists, there was a price/trading in that day and since we work with returns the price is set to one else it is NaN.
+                prices = (prices.abs() + 1e-6)/(prices.abs() + 1e-6)
+                assert (prices.isna()==total_returns.isna()).all().all()
+               
             if self.storage is not None:
                 with warnings.catch_warnings():
                     warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
@@ -153,9 +151,7 @@ class PriceProvider:
                     )
             else:
                 self.storage = prices
-                        
-            total_returns = prices/prices.shift(1) -1
-            
+          
             if self.total_returns is not None:
                 with warnings.catch_warnings():
                     warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
@@ -191,7 +187,7 @@ class PriceProvider:
         symbol = self.mapper.map(symbol)
 
         value = self.total_returns[symbol][numpy.datetime64(date)]
-        if not value or numpy.isnan(value):
+        if numpy.isnan(value):
             value = None
 
         return value

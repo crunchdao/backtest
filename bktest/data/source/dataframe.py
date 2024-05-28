@@ -13,7 +13,8 @@ class DataFrameDataSource(DataSource):
         date_column=constants.DEFAULT_DATE_COLUMN,
         symbol_column=constants.DEFAULT_SYMBOL_COLUMN,
         price_column=constants.DEFAULT_PRICE_COLUMN,
-        closeable=True
+        closeable=True,
+        data_source_contains_prices_not_returns=True   # True for price, False for returns.
     ) -> None:
         super().__init__()
 
@@ -33,6 +34,7 @@ class DataFrameDataSource(DataSource):
 
         self.dataframe = dataframe
         self.closeable = closeable
+        self.data_source_contains_prices_not_returns = data_source_contains_prices_not_returns
 
     def fetch_prices(self, symbols, start, end):
         symbols = set(symbols)
