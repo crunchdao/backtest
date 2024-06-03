@@ -123,7 +123,11 @@ class DumpExporter(Exporter):
             group.sort_values("date", inplace=True)
 
             price_yesterday = group["price"].shift(1)
-
+            # TODO: Profit is a wrong name for this column..., 
+            # it is just the change in price but since it is relative to the previous row and not previous date it has not real information I do not know why is it necessary to print it.
+            # It is more confusing then helping.
+            # Change the coulumn name equity to nav. and market_price to position value.
+            
             group['profit'] = (group['price'] - price_yesterday) / price_yesterday
 
             return group.apply(inverse_sign_if_shorting, axis=1)
