@@ -6,6 +6,7 @@ from .holding import Holding
 from .order import CloseResult, Order, OrderResult
 from .utils import is_blank
 
+EPSILON = 1e-10
 
 class Account:
 
@@ -57,14 +58,16 @@ class Account:
     def find_holding(self, symbol: str):
         return self._holdings.get(symbol, None)
 
-    def place_order(self, order: Order) -> OrderResult:
+    def place_order(self, order: Order, date) -> OrderResult:
         result = OrderResult(order=order)
         if not order.valid:
             return result
 
         result.success = True
 
-        if order.quantity == 0:
+        # TODO: Add epsilon when working with returns so that quantity is float.
+        if abs(order.quantity) < EPSILON:
+            assert abs(order.quantity-order._value) < EPSILON
             return result
 
         result.fee = self.fee_model.get_order_fee(order)
@@ -75,53 +78,62 @@ class Account:
         holding = self.find_holding(order.symbol)
 
         if holding:
+            assert holding.last_date_updated == date
             holding.merge(order)
-
-            if not holding.quantity:
+            
+            # TODO: Check - If working with values (returns and not prices) add an if ..
+            if abs(holding.quantity) < EPSILON:
+                assert abs(holding.value - holding.quantity) < EPSILON
                 del self._holdings[order.symbol]
         else:
-            self._holdings[order.symbol] = Holding.from_order(order)    # add date to holding
+            self._holdings[order.symbol] = Holding.from_order(order, date)
 
         return result
 
-    def order_position(self, order: Order) -> OrderResult:
-        relative = self.to_relative_order(order)
+    def order_position(self, order: Order, date) -> OrderResult:
+        relative = self.to_relative_order(order, date)
 
-        return self.place_order(relative)
+        return self.place_order(relative, date)
 
     def close_position(self, symbol: str, price: float = None) -> CloseResult:
         order = Order(symbol, 0, price)
         result = CloseResult(order=order)
 
         if is_blank(order.symbol):
+            # TODO: Should be an ERROR?
             return result
-
-        result.success = True
 
         holding = self.find_holding(order.symbol)
 
         if holding:
             order.quantity = -holding.quantity
+            order._value = -holding.value
 
+            # If the symbol is not traded on date the price is None.
             if order.price is None:
                 order.price = holding.price
-                print(f"[warning] no price available for {order.symbol}, using last price: {order.price}", file=sys.stderr)
+                print(f"[warning] in close_position no price available for {order.symbol}, using last price: {order.price}", file=sys.stderr)
 
             result.fee = self.fee_model.get_order_fee(order)
 
             self._handle_cash(order, result.fee)
 
             del self._holdings[order.symbol]
+            
+            result.success = True
         else:
+            # TODO: Should be an ERROR?
             result.missing = True
 
         return result
 
-    def to_relative_order(self, order: Order):
+    def to_relative_order(self, order: Order, date):
         holding = self.find_holding(order.symbol)
 
         if not holding or order.quantity is None:
             return order
+
+        assert holding.last_date_updated == date
 
         return Order(
             order.symbol,

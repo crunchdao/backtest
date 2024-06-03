@@ -47,38 +47,54 @@ class _Pod:
 
         self.price_provider.download_missing(symbols)
 
-        # symbols in the current account.
+        # others - symbols in the currently in the account.
         others = self.account.symbols
+        # Account and orders' statistisitcs for checks at the end of the orders.
+        number_of_positions_start = len(others)
+        new_positions_in_account = 0
+        number_of_orders_not_executed = 0
+        number_of_positions_in_orders = len(orders)
 
         # Enter if into the loop and save code lines.
         if self.quantity_in_decimal:
             equity = self.account.equity
             nav = self.account.nav
-            #equity = nav
+            equity = nav
 
+            # For debug printings.
+            n=0
             for order in orders:
+                n+=1
                 symbol = order.symbol
                 percent = order.quantity
                 price = order.price or self.price_provider.get(price_date, symbol)
-                total_return = self.price_provider.get_total_return(price_date, symbol)
 
                 holding_cash_value = equity * percent
                 if price is not None:
-                    #if key_returs:
-                    #    quantity = holding_cash_value
+                    if self.price_provider.work_with_prices:
+                        quantity = int(holding_cash_value / price)
+                        #quantity = float(holding_cash_value / price)
+                    else:
+                        quantity = float(holding_cash_value / price)
                     
-                    quantity = int(holding_cash_value / price)
-                    #quantity = float(holding_cash_value / price)
-
-                    result = self.account.order_position(Order(symbol, quantity, price, nav * percent))
+                    # TODO: For debug. Remove afterwards.
+                    if quantity==0:
+                        print('quantity==0 for symbol' + str(symbol))
+                    
+                    result = self.account.order_position(Order(symbol, quantity, price, nav * percent), date=price_date)
                     results.append(result)
+                    
+                    print('n= ' + str(n) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].value)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                    new_positions_in_account += not (symbol in others)
 
                     if result.success:
                         others.discard(symbol)
                     else:
                         print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
+                        number_of_orders_not_executed += 1
                 else:
                     print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
+                    number_of_orders_not_executed += 1
         else:
             for order in orders:
                 symbol = order.symbol
@@ -96,8 +112,16 @@ class _Pod:
                 else:
                     print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
 
+        print("***** new_positions_in_account = " + str(new_positions_in_account) + " *****")
+        assert number_of_positions_start + new_positions_in_account == len(self.account.symbols)
+        
+        number_of_positions_left_to_close = len(others)
+        
         if self.auto_close_others:
-            self._close_all(others, date, results)
+            self._close_all(others, price_date, results)
+            assert len(self.account.symbols) == number_of_positions_start + new_positions_in_account-number_of_positions_left_to_close
+        
+        assert len(self.account.symbols) == number_of_positions_in_orders - number_of_orders_not_executed
 
         return results
 
@@ -176,7 +200,7 @@ class ParallelBacktester:
                 auto_close_others,
                 self.price_provider,
                 Account(initial_cash=initial_cash, fee_model=fee_model),
-                ExporterCollection(exporters_factory(index))
+                ExporterCollection(exporters_factory(index)),
             )
             for index in range(n)
         ]
@@ -282,20 +306,20 @@ class SimpleBacktester:
         allow_weekends=False,
         allow_holidays=False,
         holiday_provider: HolidayProvider = LegacyHolidayProvider(),
-        use_returns_instead_of_prices: bool = False,
+        work_with_prices=True,
     ):
         self.order_provider = order_provider
         order_dates = order_provider.get_dates()
         start = max(next(iter(order_dates)), start) if len(order_dates) else None
 
-        self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching)
+        self.price_provider = PriceProvider(start, end, data_source, mapper, caching=caching, work_with_prices=work_with_prices)
 
         self.pod = _Pod(
             quantity_in_decimal,
             auto_close_others,
             self.price_provider,
             Account(initial_cash=initial_cash, fee_model=fee_model),
-            ExporterCollection(exporters)
+            ExporterCollection(exporters),
         )
 
         self.date_iterator = DateIterator(
@@ -311,17 +335,32 @@ class SimpleBacktester:
     def update_price(self, date) -> bool:
         trading_day = False
         for holding in self.account.holdings:
-            price = self.price_provider.get(date, holding.symbol)
+            # If we work with prices, we update the price else we update the quantity and the price set always equal to one.
+            if self.price_provider.work_with_prices:
+                price = self.price_provider.get(date, holding.symbol)
 
-            if price is None:
-                print(f"[warning] price not updated: {holding.symbol}: keeping last: {holding.price}", file=sys.stderr)
-                holding.up_to_date = False
+                if price is None:
+                    print(f"[warning] price not updated: {holding.symbol}: keeping last: {holding.price}", file=sys.stderr)
+                    holding.up_to_date = False
+                else:
+                    holding.price = price
+                    holding.up_to_date = True
+                    holding.last_date_updated = date
+        
+                trading_day = trading_day or holding.up_to_date
             else:
-                holding.price = price
-                holding.up_to_date = True
-        
-            trading_day = trading_day or holding.up_to_date
-        
+                total_return = self.price_provider.get_total_return(date, holding.symbol)
+
+                if total_return is None:
+                    print(f"[warning] no total_return: {holding.symbol}: keeping last value: {holding.value}", file=sys.stderr)
+                    holding.up_to_date = False
+                else:
+                    holding.quantity *= (1 + total_return)
+                    holding.up_to_date = True
+                    holding.last_date_updated = date
+
+                trading_day = trading_day or holding.up_to_date
+
         return trading_day
     
     def update_values(self, date) -> bool:
@@ -335,6 +374,7 @@ class SimpleBacktester:
             else:
                 holding.value *= (1 + total_return)
                 holding.up_to_date = True
+                holding.last_date_updated = date
 
             trading_day = trading_day or holding.up_to_date
         
@@ -366,7 +406,7 @@ class SimpleBacktester:
             if date in self.date_iterator.order_dates:
                 ordered = True
                 order_date = date
-            # No trading day beause of weekend or holiday.
+            # No trading day because of weekend or holiday.
             if self.date_iterator._should_skip_weekends(date, ordered, skips) or self.date_iterator._should_skip_holidays(date, ordered, skips):
                 self.exporters.fire_skip(date, skips[0].reason, ordered)
                 assert len(skips) == 1
@@ -374,6 +414,7 @@ class SimpleBacktester:
             
             # trading_day can still be false if we missed a holiday. So we set trading_day to False if there is no price change in any asset.
             if not pre_trading:
+                # TODO: update_values will be removed.
                 trading_day = self.update_values(date)
                 trading_day = self.update_price(date) or trading_day
             
@@ -398,34 +439,6 @@ class SimpleBacktester:
             if pre_trading:
                 self.exporters.fire_snapshot(date, self.account, None)
                 pre_trading = False
-                
-
-        # for date, ordered, skips in self.date_iterator:
-            
-        #     skip_order = False
-        #     for skip in skips:
-        #         skip_order = skip_order or skip.ordered
-        #         if skip.ordered: order_date=skip.date
-        #         self.exporters.fire_skip(skip.date, skip.reason, skip.ordered)
-
-        #     if not pre_tading:#  and date !=datetime.date(2024, 1, 22):
-        #         trading_day = self.update_values(date)
-        #         trading_day = self.update_price(date) or trading_day
-        #         if trading_day:
-        #             self.exporters.fire_snapshot(date, self.account, None)
-        #         else:
-        #             self.exporters.fire_skip(date, 'No trading', False)
-        #             #continue
-                
-        #     if skip_order:
-        #         result = self.order(order_date, price_date=date)
-        #         self.exporters.fire_snapshot(date, self.account, result, postponned=order_date)
-        #     elif ordered:
-        #         result = self.order(date)
-        #         self.exporters.fire_snapshot(date, self.account, result)
-        #     if pre_tading:
-        #         self.exporters.fire_snapshot(date, self.account, None)
-        #         pre_tading=False
     
         self.price_provider.save()
 
