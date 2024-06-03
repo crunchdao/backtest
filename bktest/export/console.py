@@ -64,7 +64,7 @@ class TextConsoleDelegate(ConsoleDelegate):
 
         ordered_color = self.color_green if snapshot.ordered else self.color_yellow
 
-        line = f"{date} ({day}){ordered_color}{ordered_string:20}{self.color_reset}    [equity={equity:12.4f}]    [equity_new={equity_new:12.4f}]    [nav={nav:12.4f}]    [cash_new={cash_new:12.4f}]"
+        line = f"{date} ({day}){ordered_color}{ordered_string:20}{self.color_reset}    [equity={equity:12.4f}]    [cash={cash:12.4f}]    [equity_new={equity_new:12.4f}]    [nav={nav:12.4f}]    [cash_new={cash_new:12.4f}]"
 
         if snapshot.ordered:
             holding_count = snapshot.holding_count
