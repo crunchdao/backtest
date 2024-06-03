@@ -1,3 +1,5 @@
+import datetime
+
 from .order import Order
 
 
@@ -12,7 +14,7 @@ class Holding:
         self.up_to_date = up_to_date
         # Add date instead of up_to_date that has no information.....
         self.last_date_updated = date
-        
+
     @property
     def market_price(self) -> float:
         return self.quantity * self.price
@@ -33,7 +35,3 @@ class Holding:
 
     def __repr__(self) -> str:
         return f"{self.symbol}x{self.quantity}"
-
-    @staticmethod
-    def from_order(order: Order, date=None) -> "Holding":
-        return Holding(order.symbol, order.quantity, order.price, order._value, up_to_date=True, date=date)

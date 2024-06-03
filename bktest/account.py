@@ -8,6 +8,7 @@ from .utils import is_blank
 
 EPSILON = 1e-10
 
+
 class Account:
 
     def __init__(
@@ -34,7 +35,7 @@ class Account:
     @property
     def equity(self) -> float:
         return self.cash + self.value
-        #return self.value
+        # return self.value
 
     @property
     def equity_new(self) -> float:
@@ -67,7 +68,7 @@ class Account:
 
         # TODO: Add epsilon when working with returns so that quantity is float.
         if abs(order.quantity) < EPSILON:
-            assert abs(order.quantity-order._value) < EPSILON
+            assert abs(order.quantity - order._value) < EPSILON
             return result
 
         result.fee = self.fee_model.get_order_fee(order)
@@ -78,15 +79,22 @@ class Account:
         holding = self.find_holding(order.symbol)
 
         if holding:
-            assert holding.last_date_updated == date
+            assert holding.last_date_updated == date, "holding price is not up-to-date"
             holding.merge(order)
-            
+
             # TODO: Check - If working with values (returns and not prices) add an if ..
-            if abs(holding.quantity) < EPSILON:
+            if abs(holding.quantity) < EPSILON: # if quantity is zero
                 assert abs(holding.value - holding.quantity) < EPSILON
                 del self._holdings[order.symbol]
         else:
-            self._holdings[order.symbol] = Holding.from_order(order, date)
+            self._holdings[order.symbol] = Holding(
+                order.symbol,
+                order.quantity,
+                order.price,
+                order._value,
+                up_to_date=True,
+                date=date
+            )
 
         return result
 
@@ -119,7 +127,7 @@ class Account:
             self._handle_cash(order, result.fee)
 
             del self._holdings[order.symbol]
-            
+
             result.success = True
         else:
             # TODO: Should be an ERROR?
@@ -139,7 +147,7 @@ class Account:
             order.symbol,
             order.quantity - holding.quantity,
             order.price,
-            order._value -  holding.value,
+            order._value - holding.value,
         )
 
     def _handle_cash(self, order: Order, fee: float):

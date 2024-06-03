@@ -49,36 +49,30 @@ class DateIterator:
     def _should_skip_weekends(
         self,
         date: datetime.date,
-        ordered: bool,
-        skips: typing.List[Skip]
-    ) -> bool:
+        ordered: bool
+    ) -> typing.Union[bool, Skip]:
         if self.allow_weekends or date.weekday() <= 4:
             return False
 
-        skips.append(Skip(
+        return Skip(
             date,
             "weekend",
             ordered
-        ))
-
-        return True
+        )
 
     def _should_skip_holidays(
         self,
         date: datetime.date,
-        ordered: bool,
-        skips: typing.List[Skip]
-    ) -> bool:
+        ordered: bool
+    ) -> typing.Union[bool, Skip]:
         if self.allow_holidays or not self.holiday_provider.is_holiday(date):
             return False
 
-        skips.append(Skip(
+        return Skip(
             date,
             "holiday",
             ordered
-        ))
-
-        return True
+        )
 
     def __next__(self):
         skips: typing.List[Skip] = []

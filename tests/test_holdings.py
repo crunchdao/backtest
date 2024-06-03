@@ -31,11 +31,3 @@ class HoldingTest(unittest.TestCase):
         holding = bktest.Holding("AAPL", 15, 2)
         
         self.assertEqual(repr(holding), "AAPLx15")
-
-    def from_order(self):
-        order = bktest.Order("AAPL", 15, 2)
-        holding = bktest.Holding.from_order(order)
-        
-        self.assertEqual(order.symbol, holding.symbol)
-        self.assertEqual(order.quantity, holding.quantity)
-        self.assertEqual(order.price, holding.price)

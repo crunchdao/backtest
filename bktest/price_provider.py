@@ -11,7 +11,6 @@ import pandas
 from .data.source.base import DataSource
 from . import constants
 
-import copy
 
 class SymbolMapper:
 
@@ -69,6 +68,8 @@ class SymbolMapper:
         return mapper
 
 
+EPSILON = 1e-6
+
 class PriceProvider:
 
     def __init__(self, start: datetime.date, end: datetime.date, data_source: DataSource, mapper: SymbolMapper, caching=True, work_with_prices=True):
@@ -77,12 +78,12 @@ class PriceProvider:
         self.data_source = data_source
         self.mapper = mapper if mapper is not None else SymbolMapper.empty()
         self.caching = caching
-        
+
         if work_with_prices and not self.data_source.data_source_contains_prices_not_returns:
             print('warning work_with_prices is true but there are no prices')
             print('setting work_with_prices to False')
-            work_with_prices=False
-            
+            work_with_prices = False
+
         self.work_with_prices = work_with_prices
 
         self.storage = PriceProvider._create_storage(start, end, caching)
@@ -106,7 +107,7 @@ class PriceProvider:
                 start=self.start - one_day,  # Not enough since day before is not necessarily a trading day... or it's ok... because first day is the base?
                 end=self.end + one_day
             )
-            
+
             if prices is None:
                 prices = pandas.DataFrame(
                     index=pandas.Index([], name=constants.DEFAULT_DATE_COLUMN),
@@ -133,22 +134,25 @@ class PriceProvider:
                         ))
 
             prices.columns = self.mapper.unmaps(prices.columns)
-            
+
             for column in prices.columns:
                 if prices[column].isna().values.all():
                     print(f"[warning] {column} does not have a price", file=sys.stderr)
-           
+
             if self.data_source.data_source_contains_prices_not_returns:
-                total_returns = prices/prices.shift(1) -1
-                shift=1
-            else:    
-                total_returns = copy.deepcopy(prices)
-                shift=0
-            
+                total_returns = prices / prices.shift(1) - 1
+                shift = 1
+            else:
+                total_returns = prices.copy()
+                shift = 0
+
             # If return for a specific stock exists, there was a price/trading in that day and since we work with returns the price is set to one else it is NaN.
-            if not self.work_with_prices:                
-                prices = (prices.abs() + 1e-6)/(prices.abs() + 1e-6)
-                assert (prices[shift:].isna()==total_returns[shift:].isna()).all().all()
+            if not self.work_with_prices:
+                abs = prices.abs()
+                # TODO: enzo: check if this could works and give the same result `prices.loc[~prices.isna()] = 1`
+                prices = (abs + EPSILON) / (abs + EPSILON)
+
+                assert (prices[shift:].isna() == total_returns[shift:].isna()).all().all(), "nans are not matching between prices and total_returns"
 
             if self.storage is not None:
                 with warnings.catch_warnings():
@@ -162,12 +166,12 @@ class PriceProvider:
                     )
             else:
                 self.storage = prices
-          
+
             if self.total_returns is not None:
                 with warnings.catch_warnings():
                     warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
-            
-                    self.total_returns =  pandas.merge(
+
+                    self.total_returns = pandas.merge(
                         self.total_returns,
                         total_returns,
                         on=constants.DEFAULT_DATE_COLUMN,
@@ -175,7 +179,7 @@ class PriceProvider:
                     )
             else:
                 self.total_returns = total_returns
-                    
+
             self.symbols.update(missing_symbols)
             self.updated = True
 
@@ -212,7 +216,7 @@ class PriceProvider:
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         self.storage.to_csv(path)
-        
+
         path = PriceProvider._get_cache_path(self.start, self.end, name='returns')
         self.total_returns.to_csv(path)
 
