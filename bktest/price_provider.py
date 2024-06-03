@@ -71,12 +71,19 @@ class SymbolMapper:
 
 class PriceProvider:
 
-    def __init__(self, start: datetime.date, end: datetime.date, data_source: DataSource, mapper: SymbolMapper, caching=True):
+    def __init__(self, start: datetime.date, end: datetime.date, data_source: DataSource, mapper: SymbolMapper, caching=True, work_with_prices=True):
         self.start = start
         self.end = end
         self.data_source = data_source
         self.mapper = mapper if mapper is not None else SymbolMapper.empty()
         self.caching = caching
+        
+        if work_with_prices and not self.data_source.data_source_contains_prices_not_returns:
+            print('warning work_with_prices is true but there are no prices')
+            print('setting work_with_prices to False')
+            work_with_prices=False
+            
+        self.work_with_prices = work_with_prices
 
         self.storage = PriceProvider._create_storage(start, end, caching)
         self.total_returns = PriceProvider._create_storage(start, end, caching, name='returns')
@@ -133,12 +140,16 @@ class PriceProvider:
            
             if self.data_source.data_source_contains_prices_not_returns:
                 total_returns = prices/prices.shift(1) -1
+                shift=1
             else:    
                 total_returns = copy.deepcopy(prices)
-                # If return for a specific stock exists, there was a price/trading in that day and since we work with returns the price is set to one else it is NaN.
+                shift=0
+            
+            # If return for a specific stock exists, there was a price/trading in that day and since we work with returns the price is set to one else it is NaN.
+            if not self.work_with_prices:                
                 prices = (prices.abs() + 1e-6)/(prices.abs() + 1e-6)
-                assert (prices.isna()==total_returns.isna()).all().all()
-               
+                assert (prices[shift:].isna()==total_returns[shift:].isna()).all().all()
+
             if self.storage is not None:
                 with warnings.catch_warnings():
                     warnings.simplefilter(action='ignore', category=pandas.errors.PerformanceWarning)
