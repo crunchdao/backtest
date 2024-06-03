@@ -99,7 +99,7 @@ class QuantStatsExporter(Exporter):
             history_df['date'],
             format="%Y-%m-%d"
         )
-        
+        # TODO: remove after debuging.
         history_df.to_csv('history_df.csv')
         
         if self.benchmark_ticker:
