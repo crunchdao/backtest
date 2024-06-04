@@ -32,8 +32,7 @@ def is_number(value: str):
 
 
 def is_blank(value: str):
-    # TODO: lior: revert to simpler is_blank method
-    return (value is None) or (is_int(value) and value == 0 ) or ( not is_number(value) and len(value.strip()) == 0 )
+    return value is None or len(value.strip()) == 0
 
 
 def ensure_not_blank(value: str, property: str = None) -> str:

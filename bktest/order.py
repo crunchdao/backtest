@@ -45,9 +45,14 @@ class Order:
         # TODO: lior: do necessary is_zero check
         if self.symbol == 0:
             return False
+    
+        if utils.is_blank(self.symbol):
+            return False
+        
+        if self.price <= 0:
+            return False
 
-        return not utils.is_blank(self.symbol) \
-            and self.price > 0
+        return True
 
 
 @dataclasses.dataclass()
