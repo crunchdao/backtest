@@ -120,7 +120,7 @@ class DumpExporter(Exporter):
             )
 
             group = pandas.concat([group, holes])
-            group.sort_values("date", inplace=True)
+            group.sort_values(["date", "ordered"], inplace=True)
 
             price_yesterday = group["price"].shift(1)
             # TODO: Profit is a wrong name for this column..., 
