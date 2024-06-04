@@ -179,8 +179,8 @@ class AccountTest(unittest.TestCase):
     def _create_dummy(add=True) -> typing.Tuple[bktest.Account, bktest.Holding, bktest.Holding]:
         account = bktest.Account()
 
-        aapl = bktest.Holding("AAPL", 15, 2)
-        tsla = bktest.Holding("TSLA", 30, 4)
+        aapl = bktest.Holding("AAPL", 15, 2, 15 * 2)
+        tsla = bktest.Holding("TSLA", 30, 4, 30 * 4)
 
         for holding in [aapl, tsla]:
             account._holdings[holding.symbol] = holding

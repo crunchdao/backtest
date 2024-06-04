@@ -23,11 +23,11 @@ class HoldingTest(unittest.TestCase):
         self.assertTrue(holding.up_to_date)
 
     def test_str(self):
-        holding = bktest.Holding("AAPL", 15, 2)
+        holding = bktest.Holding("AAPL", 15, 2, None)
         
         self.assertEqual(str(holding), "AAPLx15@2")
 
     def test_repr(self):
-        holding = bktest.Holding("AAPL", 15, 2)
+        holding = bktest.Holding("AAPL", 15, 2, None)
         
         self.assertEqual(repr(holding), "AAPLx15")
