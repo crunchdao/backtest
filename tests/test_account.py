@@ -1,59 +1,59 @@
 import typing
 import unittest
+import datetime
 
 import bktest
 
-aapl = bktest.Order("AAPL", 42, 1)
-aapl_hold = bktest.Order("AAPL", 0, 1)
-aapl_short = bktest.Order("AAPL", -42, 1)
+invalid = bktest.Order(None, 1, 1, 1 * 1)
+aapl = bktest.Order("AAPL", 42, 1, 42 * 1)
+aapl_hold = bktest.Order("AAPL", 0, 1, 0 * 1)
+aapl_short = bktest.Order("AAPL", -42, 1, - 42 * 1)
+tsla = bktest.Order("TSLA", 15, 2, 15 * 2)
 cash = 1000000
 rfr = 4.17
+today = datetime.date.today()
+
 
 class AccountTest(unittest.TestCase):
 
     def test_place_order(self):
         account = bktest.Account()
 
-        order = bktest.Order(None, 1, 1)
-        result = account.place_order(order)
-        self.assertEqual(order, result.order)
+        result = account.place_order(invalid, today)
+        self.assertEqual(invalid, result.order)
         self.assertFalse(result.success)
         self.assertEqual(0, len(account.holdings))
 
-        aapl = bktest.Order("AAPL", 15, 2)
-        result = account.place_order(aapl)
+        result = account.place_order(aapl, today)
         self.assertTrue(result.success)
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + aapl.value, account.equity)
 
-        result = account.place_order(aapl)
+        result = account.place_order(aapl, today)
         self.assertTrue(result.success)
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + aapl.value * 2, account.equity)
 
-        tsla = bktest.Order("TSLA", 15, 2)
-        result = account.place_order(tsla)
+        result = account.place_order(tsla, today)
         self.assertTrue(result.success)
         self.assertEqual(2, len(account.holdings))
         self.assertEqual(account.cash + tsla.value + aapl.value * 2, account.equity)
 
-        aapl_short = bktest.Order("AAPL", -15, 2)
-
-        result = account.place_order(aapl_short)
+        result = account.place_order(aapl_short, today)
         self.assertEqual(2, len(account.holdings))
         self.assertEqual(account.cash + tsla.value + aapl.value, account.equity)
 
-        result = account.place_order(aapl_short)
+        result = account.place_order(aapl_short, today)
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + tsla.value, account.equity)
 
     def test_order_position(self):
         account = bktest.Account()
 
-        result = account.order_position(bktest.Order(None, 1, 1))
+        result = account.order_position(invalid, today)
         self.assertFalse(result.success)
 
-        result = account.order_position(aapl)
+        result = account.order_position(aapl, today)
         self.assertTrue(result.success)
         self.assertEqual(aapl.quantity, result.order.quantity)
         holding = account.find_holding(aapl.symbol)
@@ -61,7 +61,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(aapl.quantity, holding.quantity)
         self.assertEqual(aapl.price, holding.price)
 
-        result = account.order_position(aapl)
+        result = account.order_position(aapl, today)
         self.assertTrue(result.success)
         self.assertEqual(0, result.order.quantity)
         holding = account.find_holding(aapl.symbol)
@@ -69,7 +69,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(aapl.quantity, holding.quantity)
         self.assertEqual(aapl.price, holding.price)
 
-        result = account.order_position(aapl_short)
+        result = account.order_position(aapl_short, today)
         self.assertTrue(result.success)
         self.assertEqual(aapl_short.quantity * 2, result.order.quantity)
         holding = account.find_holding(aapl.symbol)
@@ -83,27 +83,26 @@ class AccountTest(unittest.TestCase):
         result = account.close_position(None)
         self.assertFalse(result.success)
 
-        result = account.close_position("AAPL")
-        self.assertTrue(result.success)
+        result = account.close_position(aapl.symbol)
+        self.assertTrue(result.missing)
         self.assertEqual(0, result.order.quantity)
         self.assertEqual(None, result.order.price)
 
-        result = account.close_position("AAPL", 42.0)
-        self.assertTrue(result.success)
+        result = account.close_position(aapl.symbol, 42.0)
+        self.assertTrue(result.missing)
         self.assertEqual(0, result.order.quantity)
         self.assertEqual(42.0, result.order.price)
 
-        aapl = bktest.Order("AAPL", 15, 2)
-        result = account.place_order(aapl)
+        result = account.place_order(aapl, today)
         self.assertTrue(result.success)
         self.assertEqual(1, len(account.holdings))
         self.assertEqual(account.cash + aapl.value, account.equity)
 
-        result = account.close_position("TSLA")
-        self.assertTrue(result.success)
+        result = account.close_position(tsla.symbol)
+        self.assertTrue(result.missing)
         self.assertEqual(1, len(account.holdings))
 
-        result = account.close_position("AAPL")
+        result = account.close_position(aapl.symbol)
         self.assertTrue(result.success)
         self.assertEqual(0, len(account.holdings))
         self.assertEqual(account.initial_cash, account.equity)
@@ -133,46 +132,46 @@ class AccountTest(unittest.TestCase):
 
         self.assertEqual(aapl, account.find_holding(aapl.symbol))
         self.assertEqual(tsla, account.find_holding(tsla.symbol))
-        
+
         self.assertIsNone(account.find_holding("CRUNCH"))
 
     def test_to_relative_order(self):
         account = bktest.Account()
 
-        self.assertEqual(aapl, account.to_relative_order(aapl))
-        self.assertEqual(aapl_hold, account.to_relative_order(aapl_hold))
-        self.assertEqual(aapl_short, account.to_relative_order(aapl_short))
+        self.assertEqual(aapl, account.to_relative_order(aapl, today))
+        self.assertEqual(aapl_hold, account.to_relative_order(aapl_hold, today))
+        self.assertEqual(aapl_short, account.to_relative_order(aapl_short, today))
 
-        result = account.place_order(aapl)
+        result = account.place_order(aapl, today)
         self.assertTrue(result.success)
 
-        relative = account.to_relative_order(aapl)
+        relative = account.to_relative_order(aapl, today)
         self.assertEqual(0, relative.quantity)
 
-        relative = account.to_relative_order(aapl_hold)
+        relative = account.to_relative_order(aapl_hold, today)
         self.assertEqual(-aapl.quantity, relative.quantity)
 
-        relative = account.to_relative_order(aapl_short)
+        relative = account.to_relative_order(aapl_short, today)
         self.assertEqual(aapl_short.quantity * 2, relative.quantity)
 
-        order = bktest.Order("AAPL", 44, 1)
-        relative = account.to_relative_order(order)
+        order = bktest.Order("AAPL", 44, 1, 44 * 1)
+        relative = account.to_relative_order(order, today)
         self.assertEqual(2, relative.quantity)
 
         account = bktest.Account()
-        result = account.place_order(aapl_short)
+        result = account.place_order(aapl_short, today)
 
-        relative = account.to_relative_order(aapl_short)
+        relative = account.to_relative_order(aapl_short, today)
         self.assertEqual(0, relative.quantity)
 
-        relative = account.to_relative_order(aapl_hold)
+        relative = account.to_relative_order(aapl_hold, today)
         self.assertEqual(aapl.quantity, relative.quantity)
 
-        relative = account.to_relative_order(aapl)
+        relative = account.to_relative_order(aapl, today)
         self.assertEqual(aapl.quantity * 2, relative.quantity)
 
-        order = bktest.Order("AAPL", -44, 1)
-        relative = account.to_relative_order(order)
+        order = bktest.Order("AAPL", -44, 1, -44 * 1)
+        relative = account.to_relative_order(order, today)
         self.assertEqual(-2, relative.quantity)
 
     @staticmethod

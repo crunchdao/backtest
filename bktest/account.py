@@ -1,3 +1,4 @@
+import datetime
 import sys
 import typing
 
@@ -59,7 +60,7 @@ class Account:
     def find_holding(self, symbol: str):
         return self._holdings.get(symbol, None)
 
-    def place_order(self, order: Order, date) -> OrderResult:
+    def place_order(self, order: Order, date: datetime.date) -> OrderResult:
         result = OrderResult(order=order)
         if not order.valid:
             return result
@@ -83,7 +84,7 @@ class Account:
             holding.merge(order)
 
             # TODO: Check - If working with values (returns and not prices) add an if ..
-            if abs(holding.quantity) < EPSILON: # if quantity is zero
+            if abs(holding.quantity) < EPSILON:  # if quantity is zero
                 assert abs(holding.value - holding.quantity) < EPSILON
                 del self._holdings[order.symbol]
         else:
@@ -135,7 +136,7 @@ class Account:
 
         return result
 
-    def to_relative_order(self, order: Order, date):
+    def to_relative_order(self, order: Order, date: datetime.date):
         holding = self.find_holding(order.symbol)
 
         if not holding or order.quantity is None:
