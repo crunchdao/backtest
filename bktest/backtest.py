@@ -420,8 +420,8 @@ class SimpleBacktester:
                 order_date = date
 
             # No trading day because of weekend or holiday.
-            is_holiday = self.date_iterator._should_skip_holidays(date, ordered)
-            is_weekend = self.date_iterator._should_skip_weekends(date, ordered)
+            is_holiday = self.date_iterator.should_skip_holidays(date, ordered)
+            is_weekend = self.date_iterator.should_skip_weekends(date, ordered)
 
             skip = is_holiday or is_weekend
             if skip:
