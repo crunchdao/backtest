@@ -51,7 +51,7 @@ class Order:
         if isinstance(self.symbol, str) and utils.is_blank(self.symbol):
             return False
 
-        if self.price <= 0:
+        if self.price is not None and self.price <= 0:
             return False
 
         return True

@@ -108,7 +108,7 @@ class Account:
         order = Order(symbol, 0, price)
         result = CloseResult(order=order)
 
-        if is_blank(order.symbol):
+        if not order.valid:
             # TODO: Should be an ERROR?
             return result
 
