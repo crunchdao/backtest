@@ -7,6 +7,8 @@ from ... import constants
 class YahooDataSource(DataSource):
 
     def __init__(self, field="Adj Close"):
+        super().__init__()
+
         self.field = field
 
     def fetch_prices(self, symbols, start, end):
