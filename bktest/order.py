@@ -42,13 +42,15 @@ class Order:
 
     @property
     def valid(self):
-        # TODO: lior: do necessary is_zero check
+        if self.symbol is None:
+            return False
+
         if self.symbol == 0:
             return False
-    
-        if utils.is_blank(self.symbol):
+
+        if isinstance(self.symbol, str) and utils.is_blank(self.symbol):
             return False
-        
+
         if self.price <= 0:
             return False
 

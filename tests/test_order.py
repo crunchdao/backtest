@@ -44,3 +44,6 @@ class OrderTest(unittest.TestCase):
 
         order = bktest.Order("AAPL", -15, 5)
         self.assertTrue(order.valid)
+
+        order = bktest.Order(1234, -15, 5)
+        self.assertTrue(order.valid)
