@@ -1,2 +1,5 @@
 /report.csv
 /report.html
+
+!*.csv
+!*.parquet
