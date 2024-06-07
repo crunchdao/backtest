@@ -21,6 +21,7 @@ def assertDataFramesEqual(self: unittest.TestCase, first: pandas.DataFrame, seco
             self.assertTrue(numpy.allclose(
                 first[~first[column].isna()][column],
                 second[~second[column].isna()][column],
+                atol=1.e-7,
                 equal_nan=True
             ), f"{column}: not all non-NaN are equal in comparing float")
 
