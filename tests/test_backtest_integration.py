@@ -11,6 +11,8 @@ from bktest.export import ConsoleExporter
 from bktest.export import DumpExporter
 from bktest.export import QuantStatsExporter
 
+from . import helper
+
 
 def fixture_path(subpath: str):
     return os.path.join(
@@ -21,6 +23,8 @@ def fixture_path(subpath: str):
 
 
 class BacktestIntegrationTest(unittest.TestCase):
+
+    assertDataFramesEqual = helper.assertDataFramesEqual
 
     def test_constituents(self):
         start = datetime.date(1998, 11, 1)
@@ -78,11 +82,15 @@ class BacktestIntegrationTest(unittest.TestCase):
             work_with_prices=work_with_prices,
         ).run()
 
-        dump_original = pandas.read_parquet(fixture_path("constituents/dump.parquet"))
-        dump_new = pandas.read_csv("/tmp/dump.csv")
+        self.assertDataFramesEqual(
+            pandas.read_parquet(fixture_path("constituents/dump.parquet")),
+            pandas.read_csv("/tmp/dump.csv")
+        )
 
-        self.assertTrue(numpy.allclose(dump_original["equity"], dump_new["equity"]))
-
+        self.assertDataFramesEqual(
+            pandas.read_csv(fixture_path("constituents/report.csv")),
+            pandas.read_csv("/tmp/report.csv")
+        )
 
     # def test_yahoo_prices(self):
     #     end = datetime.date(2024,6,3)
