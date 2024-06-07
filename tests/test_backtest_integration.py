@@ -2,8 +2,8 @@ import unittest
 import datetime
 import pandas
 import os
-import numpy
 
+from bktest.data.source import YahooDataSource
 from bktest.data.source import DataFrameDataSource
 from bktest.order import DataFrameOrderProvider
 from bktest.backtest import SimpleBacktester
@@ -92,49 +92,100 @@ class BacktestIntegrationTest(unittest.TestCase):
             pandas.read_csv("/tmp/report.csv")
         )
 
-    # def test_yahoo_prices(self):
-    #     end = datetime.date(2024,6,3)
-    #     start = end - datetime.timedelta(days=200)
-    #     initial_cash = 1_000_000
-    #     quantity_in_decimal = True
-    #     work_with_prices = True
+    def test_yahoo_prices(self):
+        end = datetime.date(2024,6,3)
+        start = end - datetime.timedelta(days=200)
+        initial_cash = 1_000_000
+        quantity_in_decimal = True
+        work_with_prices = True
 
-    #     data_source = YahooDataSource()
+        data_source = YahooDataSource()
 
-    #     order_provider = DataFrameOrderProvider(pandas.DataFrame([
-    #         {"symbol": "AAPL", "quantity": 0.2, "date": '2023-12-30'},
-    #         {"symbol": "TSLA", "quantity": 0.3, "date": '2023-12-30'},
-    #         {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-19'},
-    #         {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-19'},
-    #         {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-20'},
-    #         {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-20'},
-    #     ]))
+        order_provider = DataFrameOrderProvider(pandas.DataFrame([
+            {"symbol": "AAPL", "quantity": 0.2, "date": '2023-12-30'},
+            {"symbol": "TSLA", "quantity": 0.3, "date": '2023-12-30'},
+            {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-19'},
+            {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-19'},
+            {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-20'},
+            {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-20'},
+        ]))
 
-    #     backtester = SimpleBacktester(
-    #         start=start,
-    #         end=end,
-    #         order_provider=order_provider,
-    #         initial_cash=initial_cash,
-    #         quantity_in_decimal=quantity_in_decimal,
-    #         data_source=data_source,
-    #         exporters=[
-    #             ConsoleExporter(),
-    #             DumpExporter(
-    #                 output_file="/tmp/dump.csv",
-    #                 auto_override=True,
-    #             ),
-    #             QuantStatsExporter(
-    #                 html_output_file='/tmp/report.html',
-    #                 csv_output_file='/tmp/report.csv',
-    #                 auto_override=True
-    #             ),
-    #         ],
-    #         work_with_prices=work_with_prices,
-    #     )
+        SimpleBacktester(
+            start=start,
+            end=end,
+            order_provider=order_provider,
+            initial_cash=initial_cash,
+            quantity_in_decimal=quantity_in_decimal,
+            data_source=data_source,
+            exporters=[
+                ConsoleExporter(),
+                DumpExporter(
+                    output_file="/tmp/dump.csv",
+                    auto_override=True,
+                ),
+                QuantStatsExporter(
+                    html_output_file='/tmp/report.html',
+                    csv_output_file='/tmp/report.csv',
+                    auto_override=True
+                ),
+            ],
+            work_with_prices=work_with_prices,
+        ).run()
 
-    #     backtester.run()
+        self.assertDataFramesEqual(
+            pandas.read_csv(fixture_path("yahoo/prices/dump.csv")),
+            pandas.read_csv("/tmp/dump.csv")
+        )
 
-    #     breakpoint()
+        self.assertDataFramesEqual(
+            pandas.read_csv(fixture_path("yahoo/prices/report.csv")),
+            pandas.read_csv("/tmp/report.csv")
+        )
 
-    #     dump_original = pandas.read_csv(fixture_path("yahoo/prices/dump.csv"))
-    #     dump_new = pandas.read_csv("/tmp/dump.csv")
+
+    def test_yahoo_returns(self):
+        end = datetime.date(2024,6,3)
+        start = end - datetime.timedelta(days=200)
+        initial_cash = 1_000_000
+        quantity_in_decimal = True
+        work_with_prices = False
+
+        data_source = YahooDataSource()
+
+        order_provider = DataFrameOrderProvider(pandas.DataFrame([
+            {"symbol": "AAPL", "quantity": 0.2, "date": '2023-12-30'},
+            {"symbol": "TSLA", "quantity": 0.3, "date": '2023-12-30'},
+            {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-19'},
+            {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-19'},
+            {"symbol": "AAPL", "quantity": -0.5, "date": '2024-01-20'},
+            {"symbol": "TSLA", "quantity": 0.5, "date": '2024-01-20'},
+        ]))
+
+        SimpleBacktester(
+            start=start,
+            end=end,
+            order_provider=order_provider,
+            initial_cash=initial_cash,
+            quantity_in_decimal=quantity_in_decimal,
+            data_source=data_source,
+            exporters=[
+                ConsoleExporter(),
+                DumpExporter(
+                    auto_override=True
+                ),
+                QuantStatsExporter(
+                    auto_override=True
+                ),
+            ],
+            work_with_prices=work_with_prices,
+        ).run()
+
+        self.assertDataFramesEqual(
+            pandas.read_csv(fixture_path("yahoo/returns/dump.csv")),
+            pandas.read_csv("/tmp/dump.csv")
+        )
+
+        self.assertDataFramesEqual(
+            pandas.read_csv(fixture_path("yahoo/returns/report.csv")),
+            pandas.read_csv("/tmp/report.csv")
+        )
