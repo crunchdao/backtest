@@ -134,12 +134,14 @@ class BacktestIntegrationTest(unittest.TestCase):
 
         self.assertDataFramesEqual(
             pandas.read_csv(fixture_path("yahoo/prices/dump.csv")),
-            pandas.read_csv("/tmp/dump.csv")
+            pandas.read_csv("/tmp/dump.csv"),
+            atol=1.e-7
         )
 
         self.assertDataFramesEqual(
             pandas.read_csv(fixture_path("yahoo/prices/report.csv")),
-            pandas.read_csv("/tmp/report.csv")
+            pandas.read_csv("/tmp/report.csv"),
+            atol=1.e-7
         )
 
 
@@ -171,9 +173,12 @@ class BacktestIntegrationTest(unittest.TestCase):
             exporters=[
                 ConsoleExporter(),
                 DumpExporter(
+                    output_file="/tmp/dump.csv",
                     auto_override=True
                 ),
                 QuantStatsExporter(
+                    html_output_file='/tmp/report.html',
+                    csv_output_file='/tmp/report.csv',
                     auto_override=True
                 ),
             ],

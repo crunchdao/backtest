@@ -8,7 +8,7 @@ def assertDataFramesEqual(
     self: unittest.TestCase,
     first: pandas.DataFrame,
     second: pandas.DataFrame,
-    atol=1.e-7
+    atol=1.e-8
 ) -> bool:
     for index, column in enumerate(first.columns):
         self.assertEqual(first.dtypes.iloc[index], second.dtypes.iloc[index], f"{column}: type mismatch between dataframes")
