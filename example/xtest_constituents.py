@@ -15,6 +15,9 @@ from bktest.export import ConsoleExporter
 from bktest.export import DumpExporter
 from bktest.export import QuantStatsExporter
 
+
+
+
 start = datetime.date(1998,11,1)
 end = datetime.date(2000,11,30)
 initial_cash = 1_000_000
@@ -79,3 +82,40 @@ SimpleBacktester(
 ).run()
 
 pandas.read_csv('dump.csv').to_parquet('dump.parquet', index=False)
+
+def compare_two_files_containing_dataframes(filename1, filename2) -> bool:
+    assert filename1.split('.')[1] == filename2.split('.')[1], "mismatch in file types"
+    
+    if filename1.split('.')[1] == 'parquet':
+        df0 = pandas.read_parquet('dump.parquet')
+        df1 = pandas.read_parquet('example/test_constituents_dump.parquet')
+    elif filename1.split('.')[1] == 'csv':
+        df0 = pandas.read_csv('dump.parquet')
+        df1 = pandas.read_csv('example/test_constituents_dump.parquet')
+    else:
+        assert False, "invalid file format specified"
+
+    for idx, column in enumerate(df0.columns):
+        print(column)
+        assert df0.dtypes[idx] == df1.dtypes[idx], "type mismatch between dataframes"
+        if pandas.api.types.is_integer_dtype(df0[column]):
+            print(f"Column {column} is of integer type.")
+            assert (df0[column].isna() == df1[column].isna()).all(), "not all NaN are equal in comparing int"
+            assert (df0[~df0[column].isna()][column] == df1[~df1[column].isna()][column]).all(), "not all non-NaN are equal in comparing int"
+        elif pandas.api.types.is_float_dtype(df0[column]):
+            print(f"Column {column} is of float type.")
+            assert (df0[column].isna()==df1[column].isna()).all(), "not all NaN are equal in comparing float"
+            assert np.allclose(df0[~df0[column].isna()][column],df1[~df1[column].isna()][column]), "not all non-NaN are equal in comparing float"
+        elif pandas.api.types.is_string_dtype(df0[column]):
+            print(f"Column {column} is of string type.")
+            assert (df0[column] == df1[column]).all(), "not all string elements are equal in comparing str"
+        elif pandas.api.types.is_bool_dtype(df0[column]):
+            print(f"Column {column} is of boolean type.")
+            assert (df0[column] == df1[column]).all(), "not all bool elements are equal  in comparing bool"
+        else:
+            print(f"Column {column} is of an unknown type: {df0[column].dtype}")
+            assert False, "column is of an unknown type"    
+
+    return True
+    
+compare_two_files_containing_dataframes('dump.parquet', 'example/test_constituents_dump.parquet')
