@@ -104,7 +104,7 @@ def compare_two_files_containing_dataframes(filename1, filename2) -> bool:
             print(max(abs(df0[~df0[column].isna()][column]/df1[~df1[column].isna()][column]-1)))
             print(max(abs(df0[~df0[column].isna()][column]-df1[~df1[column].isna()][column])))
             assert (df0[column].isna()==df1[column].isna()).all(), "not all NaN are equal in comparing float"
-            assert np.allclose(df0[~df0[column].isna()][column],df1[~df1[column].isna()][column],atol=1.e-7), "not all non-NaN are equal in comparing float"
+            assert np.allclose(df0[~df0[column].isna()][column],df1[~df1[column].isna()][column],atol=1.e-8), "not all non-NaN are equal in comparing float"
         elif pandas.api.types.is_string_dtype(df0[column]):
             print(f"Column {column} is of string type.")
             assert (df0[column] == df1[column]).all(), "not all string elements are equal in comparing str"
@@ -117,4 +117,5 @@ def compare_two_files_containing_dataframes(filename1, filename2) -> bool:
 
     return True
     
-compare_two_files_containing_dataframes('dump_last.csv', 'tests/fixtures/integration/yahoo/prices/dump.csv')
+compare_two_files_containing_dataframes('dump.csv', 'tests/fixtures/integration/yahoo/returns/dump.csv')
+compare_two_files_containing_dataframes('report.csv', 'tests/fixtures/integration/yahoo/returns/report.csv')

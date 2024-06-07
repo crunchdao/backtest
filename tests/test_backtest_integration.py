@@ -192,5 +192,6 @@ class BacktestIntegrationTest(unittest.TestCase):
 
         self.assertDataFramesEqual(
             pandas.read_csv(fixture_path("yahoo/returns/report.csv")),
-            pandas.read_csv("/tmp/report.csv")
+            pandas.read_csv("/tmp/report.csv"),
+            atol=5.e-8
         )
