@@ -62,10 +62,7 @@ class _Pod:
             nav = self.account.nav
             equity = nav
 
-            # For debug printings.
-            n = 0
-            for order in orders:
-                n += 1
+            for n, order in enumerate(orders):
                 symbol = order.symbol
                 percent = order.quantity
                 price = order.price or self.price_provider.get(price_date, symbol)
@@ -93,7 +90,7 @@ class _Pod:
                     result = self.account.order_position(order, date=price_date)
                     results.append(result)
 
-                    print('n= ' + str(n) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].value)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                    print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].value)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
                     new_positions_in_account += int(symbol not in others)
 
                     if result.success:
