@@ -62,6 +62,7 @@ class QuantStatsExporter(Exporter):
             date = snapshot.postponned
 
         self.rows.append(
+            # TODO: change equity to nav
             #(date, snapshot.nav) # Lior
             (date, snapshot.equity)
         )

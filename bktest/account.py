@@ -21,11 +21,11 @@ class Account:
         self.fee_model = fee_model if fee_model else ConstantFeeModel(0)
 
         self.cash = initial_cash
-        self.cash_new = initial_cash
         self.total_long = 0
         self.total_short = 0
         self._holdings: typing.Dict[str, Holding] = dict()
 
+    # TODO: change value to equity
     @property
     def value(self) -> float:
         return sum(
@@ -40,14 +40,11 @@ class Account:
 
     @property
     def equity_new(self) -> float:
-        return sum(
-            holding.value
-            for holding in self._holdings.values()
-        )
+        return self.value
 
     @property
     def nav(self) -> float:
-        return self.cash_new + self.equity_new
+        return self.cash + self.value
 
     @property
     def symbols(self) -> typing.Set[str]:
@@ -67,11 +64,6 @@ class Account:
 
         result.success = True
 
-        # TODO: Add epsilon when working with returns so that quantity is float.
-        if abs(order.quantity) < EPSILON:
-            assert abs(order.quantity - order._value) < EPSILON
-            return result
-
         result.fee = self.fee_model.get_order_fee(order)
 
         self._handle_cash(order, result.fee)
@@ -83,20 +75,17 @@ class Account:
             assert holding.last_date_updated == date, "holding price is not up-to-date"
             holding.merge(order)
 
-            # TODO: Check - If working with values (returns and not prices) add an if ..
-            if abs(holding.quantity) < EPSILON:  # if quantity is zero
-                assert abs(holding.value - holding.quantity) < EPSILON
-                del self._holdings[order.symbol]
         else:
             self._holdings[order.symbol] = Holding(
                 order.symbol,
                 order.quantity,
                 order.price,
-                order._value,
-                up_to_date=True,
-                date=date
+                date = date
             )
 
+        if abs(self._holdings[order.symbol].quantity) < EPSILON:  # if quantity is zero
+            del self._holdings[order.symbol]
+            
         return result
 
     def order_position(self, order: Order, date) -> OrderResult:
@@ -116,7 +105,6 @@ class Account:
 
         if holding:
             order.quantity = -holding.quantity
-            order._value = -holding.value
 
             # If the symbol is not traded on date the price is None.
             if order.price is None:
@@ -148,10 +136,8 @@ class Account:
             order.symbol,
             order.quantity - holding.quantity,
             order.price,
-            order._value - holding.value,
         )
 
     def _handle_cash(self, order: Order, fee: float):
         self.cash -= fee
         self.cash -= order.value
-        self.cash_new -= order._value

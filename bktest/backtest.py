@@ -53,21 +53,21 @@ class _Pod:
         # Account and orders' statistics for checks at the end of the execution.
         number_of_positions_start = len(others)
         new_positions_in_account = 0
+        number_of_orders_with_zero_quantity = 0
+        number_of_positions_closed_by_orders_with_zero_quantity = 0
         number_of_orders_not_executed = 0
         number_of_positions_in_orders = len(orders)
 
         # TODO Enter if into the loop and save code lines.
         if self.quantity_in_decimal:
-            equity = self.account.equity
             nav = self.account.nav
-            equity = nav
 
             for n, order in enumerate(orders):
                 symbol = order.symbol
                 percent = order.quantity
                 price = order.price or self.price_provider.get(price_date, symbol)
 
-                holding_cash_value = equity * percent
+                holding_cash_value = nav * percent
                 if price is not None:
                     if self.price_provider.work_with_prices:
                         quantity = int(holding_cash_value / price)
@@ -78,22 +78,29 @@ class _Pod:
 
                     # TODO: For debug. Remove afterwards.
                     if quantity == 0:
-                        print('quantity==0 for symbol' + str(symbol))
+                        print('quantity=0 for symbol ' + str(symbol))
 
                     order = Order(
                         symbol,
                         quantity,
-                        price,
-                        nav * percent # TODO: lior: to remove
+                        price
                     )
 
                     result = self.account.order_position(order, date=price_date)
                     results.append(result)
-
-                    print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].value)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
-                    new_positions_in_account += int(symbol not in others)
-
+                    
+                    # Order was executed
                     if result.success:
+                        # The quantity is not zero.
+                        if symbol in self.account._holdings.keys():
+                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].market_price)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            new_positions_in_account += int(symbol not in others)
+                        # New quantity is zero and doesn't appear in account._holdings.
+                        else:
+                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(0) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            number_of_positions_closed_by_orders_with_zero_quantity += int(symbol in others)
+                            number_of_orders_with_zero_quantity += 1
+                        
                         others.discard(symbol)
                     else:
                         print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
@@ -119,15 +126,16 @@ class _Pod:
                     print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
 
         print(f"***** new_positions_in_account = {new_positions_in_account} *****")
-        assert number_of_positions_start + new_positions_in_account == len(self.account.symbols), "mismatch between symbols added"
+        total_number_of_positions_added = new_positions_in_account - number_of_positions_closed_by_orders_with_zero_quantity
+        assert number_of_positions_start + total_number_of_positions_added == len(self.account.symbols), "mismatch between symbols added"
 
         number_of_positions_left_to_close = len(others)
 
         if self.auto_close_others:
             self._close_all(others, price_date, results)
-            assert len(self.account.symbols) == number_of_positions_start + new_positions_in_account - number_of_positions_left_to_close, "mismatch between symbols closed"
+            assert len(self.account.symbols) == number_of_positions_start + total_number_of_positions_added - number_of_positions_left_to_close, "mismatch between symbols closed"
 
-        assert len(self.account.symbols) == number_of_positions_in_orders - number_of_orders_not_executed, "mismatch between symbols not executed"
+        assert len(self.account.symbols) == number_of_positions_in_orders - number_of_orders_not_executed - number_of_orders_with_zero_quantity, "mismatch between symbols not executed"
 
         return results
 
@@ -359,7 +367,7 @@ class SimpleBacktester:
                 total_return = self.price_provider.get_total_return(date, holding.symbol)
 
                 if total_return is None:
-                    print(f"[warning] no total_return: {holding.symbol}: keeping last value: {holding.value}", file=sys.stderr)
+                    print(f"[warning] no total_return: {holding.symbol}: keeping last value: {holding.market_price}", file=sys.stderr)
                     holding.up_to_date = False
                 else:
                     holding.quantity *= (1 + total_return)
@@ -367,24 +375,6 @@ class SimpleBacktester:
                     holding.last_date_updated = date
 
                 trading_day = trading_day or holding.up_to_date
-
-        return trading_day
-
-    def update_values(self, date) -> bool:
-        trading_day = False
-
-        for holding in self.account.holdings:
-            total_return = self.price_provider.get_total_return(date, holding.symbol)
-
-            if total_return is None:
-                print(f"[warning] no total_return: {holding.symbol}: keeping last value: {holding.value}", file=sys.stderr)
-                holding.up_to_date = False
-            else:
-                holding.value *= (1 + total_return)
-                holding.up_to_date = True
-                holding.last_date_updated = date
-
-            trading_day = trading_day or holding.up_to_date
 
         return trading_day
 
@@ -427,9 +417,7 @@ class SimpleBacktester:
 
             # trading_day can still be false if we missed a holiday. So we set trading_day to False if there is no price change in any asset.
             if not pre_trading:
-                # TODO: update_values will be removed.
-                trading_day = self.update_values(date)
-                trading_day = self.update_price(date) or trading_day
+                trading_day = self.update_price(date)
 
                 if not trading_day:
                     self.exporters.fire_skip(date, 'no trading: no value has been updated', False)

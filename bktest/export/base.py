@@ -55,7 +55,6 @@ class ExporterCollection:
         equity = float(account.equity)
         holdings = account.holdings
         ordered = result is not None
-        cash_new=account.cash_new
         equity_new=account.equity_new
         nav=account.nav
 
@@ -66,7 +65,6 @@ class ExporterCollection:
             equity=equity,
             holdings=holdings,
             ordered=ordered,
-            cash_new=cash_new,
             equity_new=equity_new,
             nav=nav
         )

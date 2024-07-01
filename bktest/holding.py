@@ -5,14 +5,10 @@ from .order import Order
 
 class Holding:
 
-    def __init__(self, symbol: str, quantity: float, price: float, value: float, up_to_date=False, date=None) -> None:
+    def __init__(self, symbol: str, quantity: float, price: float, date=None) -> None:
         self.symbol = symbol
         self.quantity = quantity
         self.price = price
-        self.value = value
-        # TODO: remove up_to_date it is not necessary anymore, because of the variable last_date_updated which is more informative.
-        self.up_to_date = up_to_date
-        # Add date instead of up_to_date that has no information.....
         self.last_date_updated = date
 
     @property
@@ -25,8 +21,6 @@ class Holding:
 
         self.quantity += order.quantity
         self.price = order.price
-        self.value += order._value
-        self.up_to_date = True
 
         return self
 
