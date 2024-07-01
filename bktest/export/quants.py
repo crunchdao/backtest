@@ -62,16 +62,15 @@ class QuantStatsExporter(Exporter):
             date = snapshot.postponned
 
         self.rows.append(
-            # TODO: change equity to nav
-            #(date, snapshot.nav) # Lior
-            (date, snapshot.equity)
+            (date, snapshot.nav)
         )
 
     @abc.abstractmethod
     def finalize(self) -> None:
+        value_column_name = "nav"
         self.dataframe = pandas.DataFrame(
             self.rows,
-            columns=["date", "equity"]
+            columns=["date", value_column_name]
         ).set_index("date")
 
         self.dataframe.to_csv('temp_qs.csv')
@@ -85,13 +84,10 @@ class QuantStatsExporter(Exporter):
 
         history_df = self.dataframe.copy()
 
-        history_df['profit'] = history_df['equity'] - \
-            history_df['equity'].shift(1)
+        history_df['profit'] = history_df[value_column_name] - \
+            history_df[value_column_name].shift(1)
         history_df['daily_profit_pct'] = history_df["profit"] / \
-            history_df["equity"].shift(1)
-
-        # history_df['profit'].fillna(0, inplace=True)
-        # history_df['daily_profit_pct'].fillna(0, inplace=True)
+            history_df[value_column_name].shift(1)
 
         history_df.reset_index(inplace=True)
 

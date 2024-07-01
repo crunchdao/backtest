@@ -66,7 +66,7 @@ class DumpExporter(Exporter):
             date = snapshot.postponned
 
         common = [
-            snapshot.equity,
+            snapshot.nav,
             float(snapshot.ordered),
         ]
 

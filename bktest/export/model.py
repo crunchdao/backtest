@@ -12,7 +12,7 @@ class Snapshot:
     equity: float
     holdings: typing.List["Holding"]
     ordered: bool
-    equity_new: float
+    equity_long: float
     nav: float
     
     # Only when ordered

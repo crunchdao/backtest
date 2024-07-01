@@ -35,12 +35,16 @@ class Account:
 
     @property
     def equity(self) -> float:
-        return self.cash + self.value
-        # return self.value
+        #return self.cash + self.value
+        return self.value
 
     @property
-    def equity_new(self) -> float:
-        return self.value
+    def equity_long(self) -> float:
+        return sum(
+            holding.market_price
+            for holding in self._holdings.values()
+            if holding.market_price > 0
+        )
 
     @property
     def nav(self) -> float:

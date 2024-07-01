@@ -55,8 +55,8 @@ class ExporterCollection:
         equity = float(account.equity)
         holdings = account.holdings
         ordered = result is not None
-        equity_new=account.equity_new
-        nav=account.nav
+        equity_long = account.equity_long
+        nav = account.nav
 
         snapshot = Snapshot(
             date=date,
@@ -65,7 +65,7 @@ class ExporterCollection:
             equity=equity,
             holdings=holdings,
             ordered=ordered,
-            equity_new=equity_new,
+            equity_long=equity_long,
             nav=nav
         )
 
