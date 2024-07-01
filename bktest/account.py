@@ -27,16 +27,11 @@ class Account:
 
     # TODO: change value to equity
     @property
-    def value(self) -> float:
+    def equity(self) -> float:
         return sum(
             holding.market_price
             for holding in self._holdings.values()
         )
-
-    @property
-    def equity(self) -> float:
-        #return self.cash + self.value
-        return self.value
 
     @property
     def equity_long(self) -> float:
@@ -48,7 +43,7 @@ class Account:
 
     @property
     def nav(self) -> float:
-        return self.cash + self.value
+        return self.cash + self.equity
 
     @property
     def symbols(self) -> typing.Set[str]:
