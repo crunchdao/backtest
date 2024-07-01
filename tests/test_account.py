@@ -112,6 +112,15 @@ class AccountTest(unittest.TestCase):
 
         self.assertEqual(aapl.market_price + tsla.market_price, account.equity)
 
+    def test_equity_long(self):
+        account, aapl, tsla = AccountTest._create_dummy()
+
+        self.assertEqual(aapl.market_price + tsla.market_price, account.equity)
+        
+        account, aapl, tsla = AccountTest._create_dummy_two()
+
+        self.assertEqual(aapl.market_price, account.equity_long)
+        
     def test_nav(self):
         account, aapl, tsla = AccountTest._create_dummy()
 
@@ -180,6 +189,18 @@ class AccountTest(unittest.TestCase):
 
         aapl = bktest.Holding("AAPL", 15, 2)
         tsla = bktest.Holding("TSLA", 30, 4)
+
+        for holding in [aapl, tsla]:
+            account._holdings[holding.symbol] = holding
+
+        return account, aapl, tsla
+
+    @staticmethod
+    def _create_dummy_two(add=True) -> typing.Tuple[bktest.Account, bktest.Holding, bktest.Holding]:
+        account = bktest.Account()
+
+        aapl = bktest.Holding("AAPL", 15, 2)
+        tsla = bktest.Holding("TSLA", -30, 4)
 
         for holding in [aapl, tsla]:
             account._holdings[holding.symbol] = holding
