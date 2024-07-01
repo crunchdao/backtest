@@ -36,6 +36,8 @@ class _Pod:
     ) -> OrderResultCollection:
         results = OrderResultCollection()
 
+        print_order_position = False
+        
         if price_date is None:
             price_date = date
 
@@ -76,10 +78,6 @@ class _Pod:
                         # TODO: enzo: check if price is indeed one? and just make sure the division is not necessary
                         quantity = float(holding_cash_value / price)
 
-                    # TODO: For debug. Remove afterwards.
-                    if quantity == 0:
-                        print('quantity=0 for symbol ' + str(symbol))
-
                     order = Order(
                         symbol,
                         quantity,
@@ -89,15 +87,19 @@ class _Pod:
                     result = self.account.order_position(order, date=price_date)
                     results.append(result)
                     
-                    # Order was executed
+                    # order was executed
                     if result.success:
                         # The quantity is not zero.
                         if symbol in self.account._holdings.keys():
-                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].market_price)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            if print_order_position:
+                                print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].market_price)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            
                             new_positions_in_account += int(symbol not in others)
                         # New quantity is zero and doesn't appear in account._holdings.
                         else:
-                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(0) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            if print_order_position:
+                                print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(0) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                            
                             number_of_positions_closed_by_orders_with_zero_quantity += int(symbol in others)
                             number_of_orders_with_zero_quantity += 1
                         
