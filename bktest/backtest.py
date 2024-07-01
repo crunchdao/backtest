@@ -60,72 +60,58 @@ class _Pod:
         number_of_orders_not_executed = 0
         number_of_positions_in_orders = len(orders)
 
-        # TODO Enter if into the loop and save code lines.
-        if self.quantity_in_decimal:
-            nav = self.account.nav
+        nav = self.account.nav
 
-            for n, order in enumerate(orders):
-                symbol = order.symbol
-                percent = order.quantity
-                price = order.price or self.price_provider.get(price_date, symbol)
+        for n, order in enumerate(orders):
+            symbol = order.symbol
+            price = order.price or self.price_provider.get(price_date, symbol)
 
-                holding_cash_value = nav * percent
-                if price is not None:
+            if price is not None:
+                if self.quantity_in_decimal:
+                    percent = order.quantity
+                    holding_cash_value = nav * percent
+                    
                     if self.price_provider.work_with_prices:
                         quantity = int(holding_cash_value / price)
                         # quantity = float(holding_cash_value / price)
                     else:
                         # TODO: enzo: check if price is indeed one? and just make sure the division is not necessary
                         quantity = float(holding_cash_value / price)
-
-                    order = Order(
-                        symbol,
-                        quantity,
-                        price
-                    )
-
-                    result = self.account.order_position(order, date=price_date)
-                    results.append(result)
+                else:
+                    quantity = order.quantity
                     
-                    # order was executed
-                    if result.success:
-                        # The quantity is not zero.
-                        if symbol in self.account._holdings.keys():
-                            if print_order_position:
-                                print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].market_price)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
-                            
-                            new_positions_in_account += int(symbol not in others)
-                        # New quantity is zero and doesn't appear in account._holdings.
-                        else:
-                            if print_order_position:
-                                print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(0) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
-                            
-                            number_of_positions_closed_by_orders_with_zero_quantity += int(symbol in others)
-                            number_of_orders_with_zero_quantity += 1
+                order = Order(
+                    symbol,
+                    quantity,
+                    price
+                )
+
+                result = self.account.order_position(order, date=price_date)
+                results.append(result)
+                
+                # Order was executed
+                if result.success:
+                    # The quantity is not zero.
+                    if symbol in self.account._holdings.keys():
+                        if print_order_position:
+                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(int(self.account._holdings[symbol].market_price)) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
                         
-                        others.discard(symbol)
+                        new_positions_in_account += int(symbol not in others)
+                    # New quantity is zero and doesn't appear in account._holdings.
                     else:
-                        print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
-                        number_of_orders_not_executed += 1
+                        if print_order_position:
+                            print('n= ' + str(n + 1) + ' symbol ' + str(symbol) + ' quantity= ' + str(quantity) + ' value ' + str(0) + '. New in Account ' + str(not (symbol in others)) + ' account size=' + str(len(self.account.symbols)))
+                        
+                        number_of_positions_closed_by_orders_with_zero_quantity += int(symbol in others)
+                        number_of_orders_with_zero_quantity += 1
+                    
+                    others.discard(symbol)
                 else:
-                    print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
+                    print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
                     number_of_orders_not_executed += 1
-        else:
-            for order in orders:
-                symbol = order.symbol
-                quantity = order.quantity
-                price = order.price or self.price_provider.get(price_date, symbol)
-
-                if price is not None:
-                    result = self.account.order_position(Order(symbol, quantity, price))
-                    results.append(result)
-
-                    if result.success:
-                        others.discard(symbol)
-                    else:
-                        print(f"[warning] order not placed: {symbol} @ {percent}%", file=sys.stderr)
-                else:
-                    print(f"[warning] cannot place order: {symbol} @ {quantity}x: no price available", file=sys.stderr)
+            else:
+                print(f"[warning] cannot place order: {symbol} @ {percent}%: no price available", file=sys.stderr)
+                number_of_orders_not_executed += 1
 
         print(f"***** new_positions_in_account = {new_positions_in_account} *****")
         total_number_of_positions_added = new_positions_in_account - number_of_positions_closed_by_orders_with_zero_quantity
