@@ -119,7 +119,9 @@ class DumpExporter(Exporter):
                 columns=_COLUMNS,
             )
 
-            group = pandas.concat([group, holes])
+            if len(holes) > 0:
+                group = pandas.concat([group, holes])
+                
             group.sort_values(["date", "ordered"], inplace=True)
 
             price_yesterday = group["price"].shift(1)
